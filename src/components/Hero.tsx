@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpRight, Sparkles, Code, Palette, ChevronRight, Terminal, Zap, Globe, Camera, RotateCcw, Maximize2, X, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, Sparkles, Code, Palette, ChevronRight, Terminal, Zap, Globe, Camera, RotateCcw, Maximize2, X, CheckCircle2, Clock, UploadCloud } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 import { usePortfolioPhoto } from '../utils/photoState';
 
@@ -12,14 +12,35 @@ interface HeroProps {
 export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
   const [titleIndex, setTitleIndex] = useState(0);
   const [showFullPhoto, setShowFullPhoto] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const { photo, uploadPhoto, resetPhoto, isCustom } = usePortfolioPhoto();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       uploadPhoto(file);
     }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      uploadPhoto(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   useEffect(() => {
@@ -47,16 +68,27 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="lg:col-span-7 flex flex-col items-start text-left"
         >
-          {/* Welcome small pill badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-widest uppercase mb-6"
-          >
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse glow-cyan" />
-            <span>{PORTFOLIO_INFO.welcomeText}</span>
-          </motion.div>
+          {/* Welcome & 24 Hours Open pill badges */}
+          <div className="flex items-center gap-2.5 flex-wrap mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-widest uppercase"
+            >
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse glow-cyan" />
+              <span>{PORTFOLIO_INFO.welcomeText}</span>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs font-mono shadow-md"
+            >
+              <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span className="font-bold">24 HOURS OPEN</span>
+            </motion.div>
+          </div>
 
           {/* Main heading */}
           <h1 className="font-heading text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.08] mb-4">
@@ -145,7 +177,27 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
             {/* Ambient cyan glow backdrop */}
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-cyan-500/30 via-blue-600/20 to-purple-600/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
 
-            <div className="relative rounded-2xl overflow-hidden glass-panel border border-cyan-500/35 shadow-2xl p-2.5 bg-[#050b18]/95">
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={`relative rounded-2xl overflow-hidden glass-panel border transition-all duration-300 shadow-2xl p-2.5 bg-[#050b18]/95 ${
+                isDragging ? 'border-cyan-400 ring-4 ring-cyan-500/30 scale-[1.02]' : 'border-cyan-500/35'
+              }`}
+            >
+              {/* Drag over overlay */}
+              {isDragging && (
+                <div className="absolute inset-0 z-30 bg-cyan-950/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-cyan-400">
+                  <UploadCloud className="w-12 h-12 text-cyan-400 animate-bounce mb-3" />
+                  <p className="font-heading font-bold text-base text-white">
+                    Drop Your Natural Photo Here
+                  </p>
+                  <p className="text-xs text-cyan-300 font-mono mt-1">
+                    Instant 100% original full-quality upload
+                  </p>
+                </div>
+              )}
+
               {/* Photo Frame Container */}
               <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-slate-950">
                 <img
@@ -157,9 +209,11 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
                 />
 
                 {/* Status Pill on top of photo */}
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/85 border border-cyan-500/40 text-[11px] font-mono text-cyan-300 backdrop-blur-md z-10 shadow-lg">
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/90 border border-emerald-500/50 text-[11px] font-mono text-slate-200 backdrop-blur-md z-10 shadow-lg">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span>AVAILABLE FOR PROJECTS</span>
+                  <span className="font-bold text-emerald-400">24H OPEN</span>
+                  <span className="text-slate-500">•</span>
+                  <span>{isCustom ? 'NATURAL PHOTO LOADED' : 'AVAILABLE FOR PROJECTS'}</span>
                 </div>
 
                 {/* Top Action Pills (Zoom + Upload original file) */}
@@ -189,11 +243,11 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    title="Select or swap your original photo"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-950/85 hover:bg-cyan-950/90 border border-cyan-500/40 text-[10px] font-mono text-cyan-300 hover:text-white transition-colors backdrop-blur-md shadow-lg"
+                    title="Upload your 100% natural photo"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold transition-all backdrop-blur-md shadow-lg active:scale-95"
                   >
-                    <Camera className="w-3 h-3" />
-                    <span>Upload File</span>
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Upload Photo</span>
                   </button>
                 </div>
 
@@ -212,6 +266,20 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
                     <span>Nepal</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Upload prompt helper badge below photo */}
+              <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between px-1 text-[11px] font-mono text-slate-400">
+                <span className="flex items-center gap-1.5 text-cyan-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>100% Natural Photo</span>
+                </span>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2"
+                >
+                  Swap / Upload
+                </button>
               </div>
             </div>
 
@@ -307,8 +375,35 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
                 />
               </div>
 
-              <div className="p-3 text-center font-mono text-[11px] text-slate-400">
-                Full original photograph • Shot outdoors in Nepal
+              <div className="p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left font-mono text-[11px] text-slate-400 border-t border-slate-800/80 mt-2">
+                <div>
+                  <span className="text-cyan-300 font-semibold">100% Original Natural Photo</span>
+                  <span className="hidden sm:inline"> • Shot outdoors in Nepal</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={modalFileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  {isCustom && (
+                    <button
+                      onClick={resetPhoto}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono transition-colors"
+                    >
+                      Reset Default
+                    </button>
+                  )}
+                  <button
+                    onClick={() => modalFileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono transition-colors shadow-md"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Upload New Photo</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

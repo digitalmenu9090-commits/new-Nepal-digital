@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, PhoneCall, Sparkles, Instagram, ArrowUpRight } from 'lucide-react';
+import { Menu, X, PhoneCall, Sparkles, Instagram, ArrowUpRight, Clock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
 interface NavbarProps {
@@ -99,6 +99,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
 
           {/* Right Action: Call & Connect */}
           <div className="hidden sm:flex items-center gap-3">
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono text-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>24H OPEN</span>
+            </div>
+
             <a
               href={`tel:${PORTFOLIO_INFO.contactNumbers[0]}`}
               className="px-3 py-1.5 rounded-full text-xs font-mono font-medium text-slate-300 hover:text-cyan-300 bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/30 transition-all flex items-center gap-1.5"
@@ -161,6 +166,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
               </div>
 
               <div className="pt-3 border-t border-slate-800/80 flex flex-col gap-2.5">
+                <div className="flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono">
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                  <span>24 Hours Open (24/7 Available)</span>
+                </div>
                 <a
                   href={`tel:${PORTFOLIO_INFO.contactNumbers[0]}`}
                   className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-cyan-500/30 text-cyan-300 text-xs font-mono flex items-center justify-center gap-2"

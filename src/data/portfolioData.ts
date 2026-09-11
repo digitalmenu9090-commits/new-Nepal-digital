@@ -26,6 +26,8 @@ export const PORTFOLIO_INFO = {
   instagramUrl: 'https://instagram.com/black_snow35',
   whatsappNumber: '9704135338',
   whatsappUrl: 'https://wa.me/9779704135338',
+  workingHours: '24 Hours Open (24/7)',
+  availabilityStatus: '24 Hours Open • Always Active',
   images: {
     heroPortrait: aadrashNaturalPhoto,
     brandVisual: nndBrandImg,

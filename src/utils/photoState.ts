@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import defaultNaturalPhoto from '../assets/images/aadrash_natural_photo_1789106127179.jpg';
 
-const STORAGE_KEY = 'aadrash_portfolio_natural_photo';
+const STORAGE_KEY = 'aadrash_portfolio_user_natural_photo';
 
 export function usePortfolioPhoto() {
   const [photo, setPhoto] = useState<string>(() => {
@@ -23,7 +23,30 @@ export function usePortfolioPhoto() {
         try {
           localStorage.setItem(STORAGE_KEY, result);
         } catch {
-          // localStorage quota handling
+          // If file is very large for localStorage, optimize it using canvas
+          try {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 1200;
+              const scale = Math.min(1, MAX_WIDTH / img.width);
+              canvas.width = img.width * scale;
+              canvas.height = img.height * scale;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const compressed = canvas.toDataURL('image/jpeg', 0.92);
+                try {
+                  localStorage.setItem(STORAGE_KEY, compressed);
+                } catch {
+                  // ignore
+                }
+              }
+            };
+            img.src = result;
+          } catch {
+            // ignore
+          }
         }
       }
     };
@@ -47,3 +70,4 @@ export function usePortfolioPhoto() {
     defaultPhoto: defaultNaturalPhoto
   };
 }
+

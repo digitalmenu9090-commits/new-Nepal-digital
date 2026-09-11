@@ -10,7 +10,8 @@ import {
   Copy,
   ExternalLink,
   Sparkles,
-  Phone
+  Phone,
+  Clock
 } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
@@ -108,15 +109,21 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
           transition={{ duration: 0.6 }}
           className="text-center max-w-3xl mx-auto mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-widest uppercase mb-4">
-            <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-            <span>START A COLLABORATION</span>
+          <div className="flex items-center justify-center gap-2.5 flex-wrap mb-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-mono tracking-widest uppercase">
+              <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
+              <span>START A COLLABORATION</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
+              <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span className="font-bold">24 HOURS OPEN (24/7)</span>
+            </div>
           </div>
           <h2 className="font-heading text-3xl sm:text-5xl font-black text-white tracking-tight mb-4">
             Let's Create <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">Something Great</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl mx-auto">
-            Have an idea or project? Let's connect and turn your idea into a professional digital experience.
+            Have an idea or project? We are open 24 hours — connect anytime day or night to turn your vision into reality.
           </p>
         </motion.div>
 
@@ -220,9 +227,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
               <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
                 <MessageSquare className="w-6 h-6" />
               </div>
-              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
-                WHATSAPP CHAT
-              </span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 uppercase tracking-wider mb-1">
+                <Clock className="w-3 h-3 text-emerald-400" />
+                <span>24 HOURS OPEN</span>
+              </div>
               <h3 className="font-heading font-black text-xl text-white mb-4">
                 Instant Response
               </h3>
@@ -238,6 +246,43 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
             </a>
           </motion.div>
         </div>
+
+        {/* 24 Hours Open Operating Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-10 max-w-2xl mx-auto p-4 rounded-2xl bg-[#06141a]/90 border border-emerald-500/30 shadow-xl backdrop-blur-md flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-bold text-white font-heading">
+                  Operating Hours: 24 Hours Open (24/7)
+                </h4>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[10px] font-mono border border-emerald-500/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Live & Available
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 font-mono mt-0.5">
+                Immediate response on Call & WhatsApp: 9704135338 / 9717126332
+              </p>
+            </div>
+          </div>
+          <a
+            href={PORTFOLIO_INFO.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 text-xs font-mono font-bold hover:bg-emerald-400 transition-colors shrink-0 shadow"
+          >
+            <span>Message 24/7</span>
+          </a>
+        </motion.div>
 
         {/* Contact Form Container */}
         <motion.div

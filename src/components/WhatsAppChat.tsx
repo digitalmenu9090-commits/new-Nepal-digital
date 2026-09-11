@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Send, X, CheckCheck, Sparkles } from 'lucide-react';
+import { MessageCircle, Send, X, CheckCheck, Sparkles, Clock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 import { usePortfolioPhoto } from '../utils/photoState';
 
@@ -52,13 +52,17 @@ export const WhatsAppChat: React.FC = () => {
                   <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#128C7E]" />
                 </div>
                 <div>
-                  <h4 className="font-heading font-bold text-sm leading-tight flex items-center gap-1.5">
-                    {PORTFOLIO_INFO.name}
-                    <Sparkles className="w-3 h-3 text-emerald-200" />
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="font-heading font-bold text-sm leading-tight">
+                      {PORTFOLIO_INFO.name}
+                    </h4>
+                    <span className="px-1.5 py-0.2 rounded-md bg-emerald-950/70 border border-emerald-300/40 text-[9px] font-mono font-bold tracking-wide text-emerald-200 uppercase">
+                      24H OPEN
+                    </span>
+                  </div>
                   <p className="text-[11px] text-emerald-100 font-mono flex items-center gap-1 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                    Online • Typically replies instantly
+                    24 Hours Open • Replies instantly
                   </p>
                 </div>
               </div>
@@ -73,18 +77,31 @@ export const WhatsAppChat: React.FC = () => {
             </div>
 
             {/* Chat Body */}
-            <div className="p-4 bg-[#0a181f] space-y-3 max-h-[300px] overflow-y-auto">
+            <div className="p-4 bg-[#0a181f] space-y-3 max-h-[320px] overflow-y-auto">
+              {/* 24/7 Open Status Alert */}
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-[11px] font-mono text-emerald-300 shadow-sm">
+                <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0 animate-pulse" />
+                <span className="leading-tight">
+                  <strong>24 Hours Open:</strong> Ready for client inquiries day & night!
+                </span>
+              </div>
+
               {/* Agent Bubble */}
-              <div className="flex flex-col items-start max-w-[85%]">
+              <div className="flex flex-col items-start max-w-[90%]">
                 <div className="p-3 rounded-2xl rounded-tl-sm bg-[#182a32] border border-slate-800 text-xs text-slate-200 shadow space-y-1">
-                  <p className="font-semibold text-emerald-400 text-[11px]">
-                    {PORTFOLIO_INFO.name}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-emerald-400 text-[11px]">
+                      {PORTFOLIO_INFO.name}
+                    </p>
+                    <span className="text-[9px] font-mono text-emerald-300/90 bg-emerald-950/50 px-1.5 py-0.5 rounded">
+                      24/7 Support
+                    </span>
+                  </div>
                   <p>
-                    Namaste! 🙏 Welcome to NEW NEPAL DIGITAL. How can I assist you with your project today?
+                    Namaste! 🙏 Welcome to NEW NEPAL DIGITAL. We are open 24 hours. How can I assist you with your project right now?
                   </p>
                   <div className="flex items-center justify-end gap-1 text-[10px] text-slate-400 font-mono mt-1">
-                    <span>Just now</span>
+                    <span>Active now</span>
                     <CheckCheck className="w-3 h-3 text-emerald-400" />
                   </div>
                 </div>
@@ -115,7 +132,7 @@ export const WhatsAppChat: React.FC = () => {
               <input
                 id="whatsapp-custom-message-input"
                 type="text"
-                placeholder="Type a message..."
+                placeholder="Type your message anytime (24/7)..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => {
@@ -143,11 +160,13 @@ export const WhatsAppChat: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 0.6 }}
             onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/90 border border-emerald-500/40 text-emerald-400 text-xs font-mono shadow-xl backdrop-blur-md cursor-pointer hover:border-emerald-400 transition-colors"
+            className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/95 border border-emerald-500/50 text-emerald-400 text-xs font-mono shadow-xl backdrop-blur-md cursor-pointer hover:border-emerald-400 transition-colors"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            <Clock className="w-3 h-3 text-emerald-400 animate-pulse" />
+            <span className="font-bold">24 Hours Open</span>
+            <span className="text-slate-500">•</span>
             <span>Chat on WhatsApp</span>
           </motion.div>
         )}
@@ -155,7 +174,7 @@ export const WhatsAppChat: React.FC = () => {
         <motion.button
           id="whatsapp-toggle-button"
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Open WhatsApp Chat"
+          aria-label="Open WhatsApp Chat (24 Hours Open)"
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.94 }}
           className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center justify-center shadow-[0_8px_25px_rgba(37,211,102,0.45)] border-2 border-white/20 transition-colors z-10"
@@ -171,9 +190,11 @@ export const WhatsAppChat: React.FC = () => {
             <span className="absolute -inset-1 rounded-full border-2 border-emerald-400/60 animate-ping pointer-events-none" />
           )}
 
-          {/* Unread dot */}
+          {/* 24h mini badge */}
           {!isOpen && (
-            <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#030712] shadow" />
+            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-mono font-black border-2 border-[#030712] shadow">
+              24H
+            </span>
           )}
         </motion.button>
       </div>

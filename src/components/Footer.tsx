@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart } from 'lucide-react';
+import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
 export const Footer: React.FC = () => {
@@ -76,6 +76,11 @@ export const Footer: React.FC = () => {
               >
                 {PORTFOLIO_INFO.instagramHandle}
               </a>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1 rounded-full w-fit">
+              <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span>Hours: 24 Hours Open (24/7)</span>
             </div>
 
             {/* Back to top button */}
