@@ -1,4 +1,5 @@
 import { SkillItem, ServiceItem, ProjectItem, TimelineMilestone, StatItem } from '../types';
+import aadrashNaturalPhoto from '../assets/images/aadrash_natural_photo_1789106127179.jpg';
 import nndBrandImg from '../assets/images/nnd_brand_visual_1788969013167.jpg';
 import digitalMockupImg from '../assets/images/digital_mockup_1788969042280.jpg';
 
@@ -26,6 +27,7 @@ export const PORTFOLIO_INFO = {
   whatsappNumber: '9704135338',
   whatsappUrl: 'https://wa.me/9779704135338',
   images: {
+    heroPortrait: aadrashNaturalPhoto,
     brandVisual: nndBrandImg,
     mockupVisual: digitalMockupImg,
   }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpRight, Sparkles, Code, Palette, ChevronRight, Terminal, Zap, Globe, Cpu, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, Sparkles, Code, Palette, ChevronRight, Terminal, Zap, Globe, Camera, RotateCcw, Maximize2, X, CheckCircle2 } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
+import { usePortfolioPhoto } from '../utils/photoState';
 
 interface HeroProps {
   onExploreWork: () => void;
@@ -10,6 +11,16 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
   const [titleIndex, setTitleIndex] = useState(0);
+  const [showFullPhoto, setShowFullPhoto] = useState(false);
+  const { photo, uploadPhoto, resetPhoto, isCustom } = usePortfolioPhoto();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadPhoto(file);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -108,7 +119,7 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
           </div>
         </motion.div>
 
-        {/* Right Column: Holographic Cyber Creator Card */}
+        {/* Right Column: Natural Portrait & Framing */}
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -129,91 +140,77 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
             />
           </div>
 
-          {/* Main Cyber Console Card */}
-          <div className="relative z-10 w-full max-w-[360px] sm:max-w-[400px] group">
+          {/* Main Natural Photo Card */}
+          <div className="relative z-10 w-full max-w-[340px] sm:max-w-[380px] group">
             {/* Ambient cyan glow backdrop */}
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-cyan-500/30 via-blue-600/20 to-purple-600/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
 
-            <div className="relative rounded-2xl overflow-hidden glass-panel border border-cyan-500/30 shadow-2xl p-5 sm:p-6 space-y-5 bg-[#050b18]/90">
-              {/* Terminal Title Bar */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                </div>
-                <div className="flex items-center gap-1 text-[11px] font-mono text-cyan-400">
-                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>AADRASH.SYS // IDENTITY</span>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  LIVE
-                </span>
-              </div>
-
-              {/* Glowing Monogram Centerpiece */}
-              <div className="relative py-6 flex flex-col items-center justify-center text-center">
-                {/* Rotating background aura */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                  className="absolute w-36 h-36 rounded-full border border-dashed border-cyan-500/30 pointer-events-none"
+            <div className="relative rounded-2xl overflow-hidden glass-panel border border-cyan-500/35 shadow-2xl p-2.5 bg-[#050b18]/95">
+              {/* Photo Frame Container */}
+              <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-slate-950">
+                <img
+                  src={photo}
+                  alt={PORTFOLIO_INFO.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center cursor-pointer group-hover:scale-105 transition-transform duration-700"
+                  onClick={() => setShowFullPhoto(true)}
                 />
-                <div className="relative w-28 h-28 rounded-2xl bg-gradient-to-br from-cyan-950/80 via-slate-900 to-blue-950/80 border border-cyan-400/50 flex items-center justify-center shadow-xl glow-cyan mb-4">
-                  <span className="font-heading font-black text-4xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-blue-400 tracking-wider">
-                    AS
-                  </span>
-                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-cyan-400 flex items-center justify-center">
-                    <Sparkles className="w-2.5 h-2.5 text-black" />
-                  </div>
+
+                {/* Status Pill on top of photo */}
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/85 border border-cyan-500/40 text-[11px] font-mono text-cyan-300 backdrop-blur-md z-10 shadow-lg">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span>AVAILABLE FOR PROJECTS</span>
                 </div>
 
-                <h3 className="font-heading font-bold text-xl text-white tracking-tight">
-                  {PORTFOLIO_INFO.name}
-                </h3>
-                <p className="text-xs font-mono text-cyan-300 mt-1">
-                  {PORTFOLIO_INFO.title}
-                </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-[11px] font-mono text-slate-300">
-                  <Globe className="w-3 h-3 text-cyan-400" />
-                  <span>{PORTFOLIO_INFO.brand}</span>
-                </div>
-              </div>
-
-              {/* Core Capabilities Chips */}
-              <div className="space-y-2 pt-1 border-t border-slate-800/80">
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-2">
-                  CORE DISCIPLINES
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    'Modern Web Design',
-                    'Strategic Branding',
-                    'Video & Motion',
-                    'Digital QR Menus'
-                  ].map((skill) => (
-                    <div
-                      key={skill}
-                      className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-center gap-1.5"
+                {/* Top Action Pills (Zoom + Upload original file) */}
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  {isCustom && (
+                    <button
+                      onClick={resetPhoto}
+                      title="Reset to default photo"
+                      className="p-1.5 rounded-lg bg-slate-950/85 hover:bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-colors backdrop-blur-md shadow-lg"
                     >
-                      <Zap className="w-3 h-3 text-cyan-400 shrink-0" />
-                      <span className="truncate">{skill}</span>
-                    </div>
-                  ))}
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFullPhoto(true)}
+                    title="View full natural photo"
+                    className="p-1.5 rounded-lg bg-slate-950/85 hover:bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 hover:text-white transition-colors backdrop-blur-md shadow-lg"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Select or swap your original photo"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-950/85 hover:bg-cyan-950/90 border border-cyan-500/40 text-[10px] font-mono text-cyan-300 hover:text-white transition-colors backdrop-blur-md shadow-lg"
+                  >
+                    <Camera className="w-3 h-3" />
+                    <span>Upload File</span>
+                  </button>
                 </div>
-              </div>
 
-              {/* Terminal Prompt Footer */}
-              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 font-mono text-[11px] text-slate-300 space-y-1">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>&gt; status:</span>
-                  <span className="text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    Available For Projects
-                  </span>
-                </div>
-                <div className="text-cyan-300/90 truncate">
-                  &gt; mission: "{PORTFOLIO_INFO.tagline}"
+                {/* Lower info overlay */}
+                <div className="absolute bottom-3 inset-x-3 p-3.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-cyan-500/25 flex items-center justify-between z-10 shadow-xl">
+                  <div>
+                    <h3 className="font-heading font-bold text-base text-white tracking-tight">
+                      {PORTFOLIO_INFO.name}
+                    </h3>
+                    <p className="text-xs text-cyan-400 font-mono mt-0.5">
+                      Founder, {PORTFOLIO_INFO.brand}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/70 border border-cyan-500/30 text-[11px] font-mono text-slate-200">
+                    <Sparkles className="w-3 h-3 text-cyan-400" />
+                    <span>Nepal</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -267,6 +264,56 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
           <div className="w-1 h-2 rounded-full bg-cyan-400 animate-pulse" />
         </motion.div>
       </motion.div>
+
+      {/* Fullscreen Natural Photo Lightbox Modal */}
+      <AnimatePresence>
+        {showFullPhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+            onClick={() => setShowFullPhoto(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative max-w-xl w-full max-h-[90vh] bg-slate-950 rounded-2xl overflow-hidden border border-cyan-500/40 shadow-2xl p-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="font-mono text-xs text-cyan-300 font-semibold">
+                    {PORTFOLIO_INFO.name} — Natural Portrait
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowFullPhoto(false)}
+                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="relative max-h-[75vh] flex items-center justify-center overflow-hidden rounded-xl bg-black">
+                <img
+                  src={photo}
+                  alt={PORTFOLIO_INFO.name}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[75vh] w-auto object-contain rounded-lg"
+                />
+              </div>
+
+              <div className="p-3 text-center font-mono text-[11px] text-slate-400">
+                Full original photograph • Shot outdoors in Nepal
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

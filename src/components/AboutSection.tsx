@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Compass, Lightbulb, Zap, Rocket, ShieldCheck, CheckCircle, Award, Terminal, Phone, Instagram, Globe } from 'lucide-react';
 import { PORTFOLIO_INFO, CREATIVE_JOURNEY } from '../data/portfolioData';
+import { usePortfolioPhoto } from '../utils/photoState';
 
 export const AboutSection: React.FC = () => {
+  const { photo } = usePortfolioPhoto();
   return (
     <section id="about" className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Glow backgrounds */}
@@ -31,7 +33,7 @@ export const AboutSection: React.FC = () => {
 
         {/* Top Story Block: Founder Card & Core Narrative */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center mb-20">
-          {/* Left Column: Creator Identity & Brand Card */}
+          {/* Left Column: Natural Photograph & Founder Profile Card */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -39,52 +41,44 @@ export const AboutSection: React.FC = () => {
             transition={{ duration: 0.7 }}
             className="lg:col-span-5 relative"
           >
-            <div className="relative rounded-2xl glass-panel p-6 border border-cyan-500/30 overflow-hidden group bg-[#050b18]/90 shadow-2xl space-y-6">
-              {/* Card Header Bar */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <div className="flex items-center gap-2 font-mono text-xs text-cyan-400">
-                  <Terminal className="w-3.5 h-3.5" />
-                  <span>FOUNDER_PROFILE</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
-                  <span>NEPAL</span>
-                </div>
-              </div>
+            <div className="relative rounded-2xl glass-panel p-4 sm:p-5 border border-cyan-500/30 overflow-hidden group bg-[#050b18]/90 shadow-2xl space-y-4">
+              {/* Natural Photo Frame */}
+              <div className="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-cyan-500/20">
+                <img
+                  src={photo}
+                  alt={PORTFOLIO_INFO.name}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                />
 
-              {/* Creator Emblem & Title */}
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-400/40 flex items-center justify-center shrink-0 glow-cyan">
-                  <span className="font-heading font-black text-2xl text-cyan-300 tracking-wider">
-                    AS
+                {/* Subtle gradient vignette at bottom for readability */}
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
+
+                <div className="absolute bottom-3 inset-x-3 flex items-center justify-between text-left">
+                  <div>
+                    <h3 className="font-heading font-bold text-lg text-white">
+                      {PORTFOLIO_INFO.name}
+                    </h3>
+                    <p className="text-xs font-mono text-cyan-300">
+                      Founder, {PORTFOLIO_INFO.brand}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-slate-950/80 border border-emerald-500/40 px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Verified
                   </span>
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-xl text-white">
-                    {PORTFOLIO_INFO.name}
-                  </h3>
-                  <p className="text-xs font-mono text-cyan-300">
-                    Founder, {PORTFOLIO_INFO.brand}
-                  </p>
-                  <p className="text-[11px] text-slate-400 italic mt-0.5">
-                    "{PORTFOLIO_INFO.tagline}"
-                  </p>
                 </div>
               </div>
 
               {/* Key Credentials & Quick Facts */}
-              <div className="space-y-2.5 pt-2 border-t border-slate-800/80 text-xs">
+              <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
                   <span className="text-slate-400 font-mono text-[11px]">Specialization</span>
                   <span className="font-semibold text-white">Web, Video & Branding</span>
                 </div>
 
                 <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                  <span className="text-slate-400 font-mono text-[11px]">Primary Agency</span>
-                  <span className="font-semibold text-cyan-300">{PORTFOLIO_INFO.brand}</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                  <span className="text-slate-400 font-mono text-[11px]">Contact Direct</span>
+                  <span className="text-slate-400 font-mono text-[11px]">Direct Contact</span>
                   <span className="font-mono text-slate-200">9704135338 / 9717126332</span>
                 </div>
 
@@ -93,19 +87,10 @@ export const AboutSection: React.FC = () => {
                   <span className="font-mono text-cyan-400">{PORTFOLIO_INFO.instagramHandle}</span>
                 </div>
               </div>
-
-              {/* Live Badge */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-xs font-mono">
-                <span className="text-slate-300">Client Status:</span>
-                <span className="text-emerald-400 flex items-center gap-1.5 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Available For Projects
-                </span>
-              </div>
             </div>
 
             {/* Accent badge */}
-            <div className="absolute -bottom-4 -right-4 px-4 py-2 rounded-xl glass-panel border border-cyan-400/40 glow-cyan backdrop-blur-xl flex items-center gap-2">
+            <div className="absolute -bottom-3 -right-3 px-3.5 py-1.5 rounded-xl glass-panel border border-cyan-400/40 glow-cyan backdrop-blur-xl flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
               <span className="font-mono text-xs font-semibold text-white">
                 Brand Visionary

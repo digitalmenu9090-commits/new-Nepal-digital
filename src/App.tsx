@@ -12,6 +12,7 @@ import { ProjectsSection } from './components/ProjectsSection';
 import { NewNepalDigitalSection } from './components/NewNepalDigitalSection';
 import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
+import { WhatsAppChat } from './components/WhatsAppChat';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -96,6 +97,7 @@ export default function App() {
         </main>
 
         <Footer />
+        <WhatsAppChat />
       </div>
     </div>
   );
