@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Send, X, CheckCheck, Sparkles, Clock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
-import { usePortfolioPhoto } from '../utils/photoState';
 
 export const WhatsAppChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const { photo } = usePortfolioPhoto();
 
   const presetMessages = [
     'Hi Aadrash, I need a website for my business!',
@@ -43,12 +41,9 @@ export const WhatsAppChat: React.FC = () => {
             <div className="bg-gradient-to-r from-emerald-600 to-[#128C7E] p-4 text-white flex items-center justify-between shadow-md">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <img
-                    src={photo}
-                    alt={PORTFOLIO_INFO.name}
-                    referrerPolicy="no-referrer"
-                    className="w-11 h-11 rounded-full object-cover border-2 border-white/80 shadow"
-                  />
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 via-teal-600 to-cyan-800 flex items-center justify-center border-2 border-white/80 shadow text-white font-heading font-black text-sm tracking-wider">
+                    AS
+                  </div>
                   <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#128C7E]" />
                 </div>
                 <div>

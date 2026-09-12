@@ -2,10 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Compass, Lightbulb, Zap, Rocket, ShieldCheck, CheckCircle, Award, Terminal, Phone, Instagram, Globe } from 'lucide-react';
 import { PORTFOLIO_INFO, CREATIVE_JOURNEY } from '../data/portfolioData';
-import { usePortfolioPhoto } from '../utils/photoState';
 
 export const AboutSection: React.FC = () => {
-  const { photo } = usePortfolioPhoto();
   return (
     <section id="about" className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Glow backgrounds */}
@@ -42,17 +40,17 @@ export const AboutSection: React.FC = () => {
             className="lg:col-span-5 relative"
           >
             <div className="relative rounded-2xl glass-panel p-4 sm:p-5 border border-cyan-500/30 overflow-hidden group bg-[#050b18]/90 shadow-2xl space-y-4">
-              {/* Natural Photo Frame */}
-              <div className="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-cyan-500/20">
+              {/* Brand Visual & Founder Studio Frame */}
+              <div className="relative rounded-xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] bg-slate-950 border border-cyan-500/20">
                 <img
-                  src={photo}
-                  alt={PORTFOLIO_INFO.name}
+                  src={PORTFOLIO_INFO.images.brandVisual}
+                  alt={PORTFOLIO_INFO.brand}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
 
                 {/* Subtle gradient vignette at bottom for readability */}
-                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none" />
 
                 <div className="absolute bottom-3 inset-x-3 flex items-center justify-between text-left">
                   <div>
