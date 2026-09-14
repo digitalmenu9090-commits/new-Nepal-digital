@@ -1,4 +1,5 @@
 import { SkillItem, ServiceItem, ProjectItem, TimelineMilestone, StatItem } from '../types';
+import aadrashPortraitImg from '../assets/images/aadrash_authentic_photo_1789393033546.jpg';
 import nndBrandImg from '../assets/images/nnd_brand_visual_1788969013167.jpg';
 import digitalMockupImg from '../assets/images/digital_mockup_1788969042280.jpg';
 
@@ -28,6 +29,7 @@ export const PORTFOLIO_INFO = {
   workingHours: '24 Hours Open (24/7)',
   availabilityStatus: '24 Hours Open • Always Active',
   images: {
+    heroPortrait: aadrashPortraitImg,
     brandVisual: nndBrandImg,
     mockupVisual: digitalMockupImg,
   }

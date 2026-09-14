@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUpRight, Sparkles, Code, Palette, ChevronRight, Terminal, Zap, Globe, Clock, ShieldCheck } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
+import { usePortfolioPhoto } from '../utils/photoState';
 
 interface HeroProps {
   onExploreWork: () => void;
@@ -10,6 +11,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
   const [titleIndex, setTitleIndex] = useState(0);
+  const { photo } = usePortfolioPhoto();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -140,17 +142,17 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
             />
           </div>
 
-          {/* Main Brand & Studio Visual Card */}
-          <div className="relative z-10 w-full max-w-[340px] sm:max-w-[400px] group">
+          {/* Main Portrait Visual Card */}
+          <div className="relative z-10 w-full max-w-[340px] sm:max-w-[380px] group">
             {/* Ambient cyan glow backdrop */}
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-cyan-500/30 via-blue-600/20 to-purple-600/10 blur-xl opacity-70 group-hover:opacity-100 transition-opacity" />
 
             <div className="relative rounded-2xl overflow-hidden glass-panel border border-cyan-500/35 shadow-2xl p-3 bg-[#050b18]/95">
-              {/* Brand Visual Frame Container */}
-              <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-slate-950">
+              {/* Photo Frame Container */}
+              <div className="relative rounded-xl overflow-hidden aspect-[3/4] bg-slate-950">
                 <img
-                  src={PORTFOLIO_INFO.images.brandVisual}
-                  alt={PORTFOLIO_INFO.brand}
+                  src={photo}
+                  alt={PORTFOLIO_INFO.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
@@ -163,10 +165,10 @@ export const Hero: React.FC<HeroProps> = ({ onExploreWork, onConnect }) => {
                   <span>ONLINE</span>
                 </div>
 
-                {/* Verified Brand Badge Top Right */}
+                {/* Verified Founder Badge Top Right */}
                 <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-950/85 border border-cyan-500/30 text-[10px] font-mono text-cyan-300 backdrop-blur-md z-10">
                   <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                  <span>Verified Studio</span>
+                  <span>Founder</span>
                 </div>
 
                 {/* Lower info overlay */}

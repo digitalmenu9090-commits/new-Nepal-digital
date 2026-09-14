@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Compass, Lightbulb, Zap, Rocket, ShieldCheck, CheckCircle, Award, Terminal, Phone, Instagram, Globe } from 'lucide-react';
 import { PORTFOLIO_INFO, CREATIVE_JOURNEY } from '../data/portfolioData';
+import { usePortfolioPhoto } from '../utils/photoState';
 
 export const AboutSection: React.FC = () => {
+  const { photo } = usePortfolioPhoto();
   return (
     <section id="about" className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Glow backgrounds */}
@@ -40,11 +42,11 @@ export const AboutSection: React.FC = () => {
             className="lg:col-span-5 relative"
           >
             <div className="relative rounded-2xl glass-panel p-4 sm:p-5 border border-cyan-500/30 overflow-hidden group bg-[#050b18]/90 shadow-2xl space-y-4">
-              {/* Brand Visual & Founder Studio Frame */}
-              <div className="relative rounded-xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] bg-slate-950 border border-cyan-500/20">
+              {/* Founder Photo Frame */}
+              <div className="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-cyan-500/20">
                 <img
-                  src={PORTFOLIO_INFO.images.brandVisual}
-                  alt={PORTFOLIO_INFO.brand}
+                  src={photo}
+                  alt={PORTFOLIO_INFO.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
