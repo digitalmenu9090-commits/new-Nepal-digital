@@ -1,9 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock } from 'lucide-react';
+import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock, Lock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenOwnerPortal?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenOwnerPortal }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -99,9 +103,24 @@ export const Footer: React.FC = () => {
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <p>© 2026 Aadrash Sah. All rights reserved.</p>
-          <div className="flex items-center gap-2">
-            <span>Powered by</span>
-            <span className="text-cyan-400 font-mono font-medium">{PORTFOLIO_INFO.brand}</span>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span>Powered by</span>
+              <span className="text-cyan-400 font-mono font-medium">{PORTFOLIO_INFO.brand}</span>
+            </div>
+
+            {onOpenOwnerPortal && (
+              <button
+                type="button"
+                onClick={onOpenOwnerPortal}
+                className="inline-flex items-center gap-1.5 text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer text-xs font-mono ml-2 py-1 px-2 rounded-md hover:bg-slate-900 border border-transparent hover:border-slate-800"
+                title="Secure Owner Administration Portal"
+              >
+                <Lock className="w-3 h-3 text-slate-500 hover:text-cyan-400" />
+                <span>Owner Portal</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

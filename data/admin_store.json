@@ -1,0 +1,272 @@
+{
+  "owner": {
+    "email": "videographics27@gmail.com",
+    "username": "aadrash",
+    "name": "Aadrash Kumar Sah",
+    "role": "owner",
+    "activePassword": "newnepaldigital9090",
+    "passwordHash": "41937ca1bf02c038804bb4f22c6a1b6e4aaa1a676cb98fa78f8f8e4634b9c552dffc71ef42b44097f30526445934cf7f11095f39979cb30fd8da9f66d3785f92",
+    "passwordSalt": "764df8a1171cfc708ac32a2186ee6208",
+    "mustChangePassword": false,
+    "lastPasswordChange": "2026-09-19T14:38:00.000Z",
+    "createdAt": "2026-09-19T14:32:23.494Z"
+  },
+  "invalidatedTokens": [
+    "50b9750f46081a31bc23c7dafab7e971"
+  ],
+  "appointments": [
+    {
+      "id": "apt-101",
+      "name": "Rohan Shrestha",
+      "phone": "+977 9841234567",
+      "email": "rohan.shrestha@nepalbiz.com",
+      "service": "Digital Website Design",
+      "date": "2026-09-21",
+      "time": "11:00 AM",
+      "appointmentType": "Google Meet (Online)",
+      "message": "Looking for a responsive full-stack eCommerce catalog with payment integration for our Kathmandu store.",
+      "status": "confirmed",
+      "createdAt": "2026-09-19T12:32:23.494Z",
+      "isNewRequest": true,
+      "notes": "Client requested portfolio examples of retail websites."
+    },
+    {
+      "id": "apt-102",
+      "name": "Pooja Thapa",
+      "phone": "+977 9801987654",
+      "email": "pooja.thapa@himalayancoffee.np",
+      "service": "Branding & Creative Services",
+      "date": "2026-09-22",
+      "time": "02:30 PM",
+      "appointmentType": "Studio Meeting / In-person",
+      "message": "Complete rebranding for our specialty coffee brand including logo, packaging, menu, and Instagram visual guidelines.",
+      "status": "confirmed",
+      "createdAt": "2026-09-19T00:32:23.495Z",
+      "isNewRequest": true,
+      "notes": "Confirmed for creative studio consultation at NEW NEPAL DIGITAL."
+    },
+    {
+      "id": "apt-103",
+      "name": "Suman Adhikari",
+      "phone": "+977 9812345678",
+      "email": "suman.media@gmail.com",
+      "service": "Video Editing",
+      "date": "2026-09-18",
+      "time": "04:00 PM",
+      "appointmentType": "WhatsApp Call",
+      "message": "Commercial teaser editing with cinematic sound design, dynamic motion graphics, and color grading.",
+      "status": "completed",
+      "createdAt": "2026-09-17T14:32:23.495Z",
+      "isNewRequest": false,
+      "notes": "Project delivered successfully. 5-star feedback received."
+    },
+    {
+      "id": "apt-104",
+      "name": "Bikash Karki",
+      "phone": "+977 9865432109",
+      "email": "bikash.trekking@nepalexp.com",
+      "service": "Digital Menu / QR Menu Design",
+      "date": "2026-09-24",
+      "time": "01:00 PM",
+      "appointmentType": "Google Meet (Online)",
+      "message": "Interactive digital interactive catalog for our trekking gear & tour packages.",
+      "status": "pending",
+      "createdAt": "2026-09-19T09:32:23.495Z",
+      "isNewRequest": true,
+      "notes": "Follow up with pricing breakdown."
+    },
+    {
+      "id": "apt-105",
+      "name": "Anjali Sharma",
+      "phone": "+977 9823456789",
+      "email": "anjali.s@outlook.com",
+      "service": "Animation & Motion Graphics",
+      "date": "2026-09-15",
+      "time": "05:00 PM",
+      "appointmentType": "Google Meet (Online)",
+      "message": "Need 3D intro logo reveal animation for YouTube tech channel.",
+      "status": "cancelled",
+      "createdAt": "2026-09-15T14:32:23.495Z",
+      "isNewRequest": false,
+      "notes": "Client rescheduled for October due to internal project delay."
+    }
+  ],
+  "services": [
+    {
+      "id": "srv-1",
+      "name": "Digital Website Design",
+      "category": "Web & Tech",
+      "priceEstimate": "NPR 25,000+",
+      "duration": "1-2 Weeks",
+      "status": "Active"
+    },
+    {
+      "id": "srv-2",
+      "name": "Branding & Creative Services",
+      "category": "Branding",
+      "priceEstimate": "NPR 15,000+",
+      "duration": "3-5 Days",
+      "status": "Active"
+    },
+    {
+      "id": "srv-3",
+      "name": "Video Editing",
+      "category": "Video Production",
+      "priceEstimate": "NPR 12,000+",
+      "duration": "2-4 Days",
+      "status": "Active"
+    },
+    {
+      "id": "srv-4",
+      "name": "Animation & Motion Graphics",
+      "category": "Animation",
+      "priceEstimate": "NPR 20,000+",
+      "duration": "5-7 Days",
+      "status": "Active"
+    },
+    {
+      "id": "srv-5",
+      "name": "Social Media Design",
+      "category": "Marketing",
+      "priceEstimate": "NPR 18,000/mo",
+      "duration": "Monthly",
+      "status": "Active"
+    },
+    {
+      "id": "srv-6",
+      "name": "Digital Menu / QR Menu Design",
+      "category": "Digital Solutions",
+      "priceEstimate": "NPR 10,000+",
+      "duration": "2-3 Days",
+      "status": "Active"
+    }
+  ],
+  "systemLogs": [
+    {
+      "id": "log-1789828858240",
+      "timestamp": "2026-09-19T14:40:58.240Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828855484",
+      "timestamp": "2026-09-19T14:40:55.484Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828765027",
+      "timestamp": "2026-09-19T14:39:25.027Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828749299",
+      "timestamp": "2026-09-19T14:39:09.299Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828747400",
+      "timestamp": "2026-09-19T14:39:07.400Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828393229",
+      "timestamp": "2026-09-19T14:33:13.229Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828385649",
+      "timestamp": "2026-09-19T14:33:05.649Z",
+      "event": "Password Changed",
+      "level": "SECURITY",
+      "details": "Owner password updated securely. Hash persisted in vault."
+    },
+    {
+      "id": "log-1789828385529",
+      "timestamp": "2026-09-19T14:33:05.529Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828382371",
+      "timestamp": "2026-09-19T14:33:02.371Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828376602",
+      "timestamp": "2026-09-19T14:32:56.602Z",
+      "event": "Password Changed",
+      "level": "SECURITY",
+      "details": "Owner password updated securely. Hash persisted in vault."
+    },
+    {
+      "id": "log-1789828376482",
+      "timestamp": "2026-09-19T14:32:56.482Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828359359",
+      "timestamp": "2026-09-19T14:32:39.359Z",
+      "event": "Owner Logged Out",
+      "level": "SECURITY",
+      "details": "Session 50b9750f invalidated."
+    },
+    {
+      "id": "log-1789828359336",
+      "timestamp": "2026-09-19T14:32:39.336Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828351280",
+      "timestamp": "2026-09-19T14:32:31.280Z",
+      "event": "Appointment Updated",
+      "level": "INFO",
+      "details": "Appointment apt-101 (Rohan Shrestha) updated to confirmed"
+    },
+    {
+      "id": "log-1789828351257",
+      "timestamp": "2026-09-19T14:32:31.257Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828346515",
+      "timestamp": "2026-09-19T14:32:26.515Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1789828343576",
+      "timestamp": "2026-09-19T14:32:23.576Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1",
+      "timestamp": "2026-09-19T14:32:23.495Z",
+      "event": "Security Shield Activated",
+      "level": "SECURITY",
+      "details": "Owner-only private admin vault initialized. Public access permanently blocked."
+    }
+  ]
+}

@@ -69,15 +69,29 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      await fetch('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone,
+          service: formData.projectType,
+          message: formData.message,
+          appointmentType: 'Google Meet or WhatsApp'
+        })
+      });
+    } catch (err) {
+      console.error('Error submitting appointment', err);
+    } finally {
       setIsSubmitting(false);
       setSubmittedState('success');
-    }, 600);
+    }
   };
 
   const generateWhatsAppUrl = () => {
