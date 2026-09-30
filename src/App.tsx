@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { Analytics } from '@vercel/analytics/react';
 import { Loader } from './components/Loader';
 import { BackgroundParticles } from './components/BackgroundParticles';
 import { Navbar } from './components/Navbar';
@@ -158,36 +159,45 @@ export default function App() {
   if (currentView === 'admin') {
     if (isVerifyingAuth) {
       return (
-        <div className="min-h-screen bg-[#030712] flex items-center justify-center text-cyan-400 font-mono text-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-            <span>Verifying Owner Vault Access...</span>
+        <>
+          <div className="min-h-screen bg-[#030712] flex items-center justify-center text-cyan-400 font-mono text-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+              <span>Verifying Owner Vault Access...</span>
+            </div>
           </div>
-        </div>
+          <Analytics />
+        </>
       );
     }
 
     if (!isAuthenticated) {
       return (
-        <AdminLogin
-          onLoginSuccess={(_user, mustChange) => {
-            setIsAuthenticated(true);
-            setMustChangePassword(mustChange);
-          }}
-          onBackToWebsite={handleExitToWebsite}
-        />
+        <>
+          <AdminLogin
+            onLoginSuccess={(_user, mustChange) => {
+              setIsAuthenticated(true);
+              setMustChangePassword(mustChange);
+            }}
+            onBackToWebsite={handleExitToWebsite}
+          />
+          <Analytics />
+        </>
       );
     }
 
     return (
-      <AdminDashboard
-        onLogout={() => {
-          setIsAuthenticated(false);
-          handleExitToWebsite();
-        }}
-        onViewWebsite={handleExitToWebsite}
-        initialMustChangePassword={mustChangePassword}
-      />
+      <>
+        <AdminDashboard
+          onLogout={() => {
+            setIsAuthenticated(false);
+            handleExitToWebsite();
+          }}
+          onViewWebsite={handleExitToWebsite}
+          initialMustChangePassword={mustChangePassword}
+        />
+        <Analytics />
+      </>
     );
   }
 
@@ -230,6 +240,9 @@ export default function App() {
         <Footer onOpenOwnerPortal={handleOpenOwnerPortal} />
         <WhatsAppChat />
       </div>
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
