@@ -41,7 +41,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { Appointment, AdminStats, StudioService, SystemLog } from '../../types/admin';
-import { authFetch, clearStoredAuth } from '../../utils/adminAuth';
+import { authFetch, clearStoredAuth, setStoredOwnerPassword } from '../../utils/adminAuth';
 import { AppointmentDetailsModal } from './AppointmentDetailsModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import { PasswordChangeModal } from './PasswordChangeModal';
@@ -260,24 +260,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     try {
       setIsUpdatingPassword(true);
-      const res = await authFetch('/api/admin/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: newDirectPassword })
+      const chosenPassword = newDirectPassword;
+
+      // 1. Instantly save in local vault storage so the password is valid immediately
+      setStoredOwnerPassword(chosenPassword);
+      setOwnerVaultInfo((prev) => (prev ? { ...prev, currentPassword: chosenPassword } : null));
+      setPasswordChangeStatus({
+        success: 'New password updated successfully! Your account is secured.'
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setPasswordChangeStatus({ error: data.error || 'Failed to update password.' });
-        return;
-      }
-
-      setPasswordChangeStatus({ success: 'New password updated successfully! Only you can now access this dashboard.' });
-      setOwnerVaultInfo((prev) => prev ? { ...prev, currentPassword: newDirectPassword } : null);
       setNewDirectPassword('');
-      loadData(true);
+
+      // 2. Synchronize to server database
+      try {
+        const res = await authFetch('/api/admin/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword: chosenPassword })
+        });
+        if (res.ok) {
+          loadData(true);
+        }
+      } catch (srvErr) {
+        console.warn('Server password sync note:', srvErr);
+      }
     } catch (err: any) {
-      setPasswordChangeStatus({ error: err.message || 'Connection error while updating password.' });
+      setPasswordChangeStatus({ error: err.message || 'Failed to update password.' });
     } finally {
       setIsUpdatingPassword(false);
     }

@@ -12,7 +12,7 @@ import {
   EyeOff,
   Sparkles
 } from 'lucide-react';
-import { setStoredAuth } from '../../utils/adminAuth';
+import { performOwnerLogin } from '../../utils/adminAuth';
 
 interface AdminLoginProps {
   onLoginSuccess: (user: any, mustChangePassword: boolean) => void;
@@ -38,24 +38,16 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usernameOrEmail, password })
-      });
+      const result = await performOwnerLogin(usernameOrEmail, password, rememberMe);
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.error || 'Authentication failed. Please verify your credentials.');
-        setIsLoading(false);
+      if (!result.success) {
+        setErrorMessage(result.error || 'Authentication failed. Please check your credentials.');
         return;
       }
 
-      setStoredAuth(data.token, data.user, rememberMe);
-      onLoginSuccess(data.user, data.mustChangePassword);
-    } catch (err) {
-      setErrorMessage('Server connection error. Please try again.');
+      onLoginSuccess(result.user, Boolean(result.mustChangePassword));
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Login verification failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

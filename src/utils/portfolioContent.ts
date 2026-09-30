@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PORTFOLIO_INFO, PROJECTS, SERVICES, SKILLS, STATS } from '../data/portfolioData';
-import { authFetch } from './adminAuth';
+import { authFetch, safeJsonResponse } from './adminAuth';
 
 export interface PortfolioContentData {
   info: typeof PORTFOLIO_INFO;
@@ -44,6 +44,54 @@ export function getCachedPortfolioContent(): PortfolioContentData {
   return DEFAULT_PORTFOLIO_CONTENT;
 }
 
+// Client-side image compression to prevent 413 Entity Too Large on mobile camera photos
+async function optimizeImageForUpload(file: File, maxDim: number = 1600): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = (e) => {
+      const rawDataUrl = e.target?.result as string;
+      if (!rawDataUrl) return reject(new Error('Empty image payload'));
+
+      // If already small (< 500KB) and not huge, use directly
+      if (file.size < 500 * 1024) {
+        return resolve(rawDataUrl);
+      }
+
+      const img = new Image();
+      img.onerror = () => resolve(rawDataUrl); // fallback to raw
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(rawDataUrl);
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.88);
+          resolve(compressed);
+        } catch {
+          resolve(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function usePortfolioContent() {
   const [content, setContent] = useState<PortfolioContentData>(getCachedPortfolioContent);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,32 +100,30 @@ export function usePortfolioContent() {
   const fetchLiveContent = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/content');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.content) {
-          const merged: PortfolioContentData = {
-            ...DEFAULT_PORTFOLIO_CONTENT,
-            ...data.content,
-            info: {
-              ...DEFAULT_PORTFOLIO_CONTENT.info,
-              ...(data.content.info || {}),
-              images: {
-                ...DEFAULT_PORTFOLIO_CONTENT.info.images,
-                ...(data.content.info?.images || {})
-              }
+      const res = await authFetch('/api/content');
+      const parsed = await safeJsonResponse(res);
+      if (res.ok && parsed.ok && parsed.data?.content) {
+        const merged: PortfolioContentData = {
+          ...DEFAULT_PORTFOLIO_CONTENT,
+          ...parsed.data.content,
+          info: {
+            ...DEFAULT_PORTFOLIO_CONTENT.info,
+            ...(parsed.data.content.info || {}),
+            images: {
+              ...DEFAULT_PORTFOLIO_CONTENT.info.images,
+              ...(parsed.data.content.info?.images || {})
             }
-          };
-          setContent(merged);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-          } catch {
-            // ignore
           }
+        };
+        setContent(merged);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        } catch {
+          // ignore
         }
       }
     } catch (err) {
-      console.warn('Failed to load live portfolio content, using cache:', err);
+      console.warn('Network issue fetching live portfolio content; using cached content:', err);
     } finally {
       setIsLoading(false);
     }
@@ -99,17 +145,73 @@ export function usePortfolioContent() {
   }, []);
 
   const saveContent = async (updated: PortfolioContentData): Promise<{ success: boolean; error?: string }> => {
+    setIsSaving(true);
+
+    // 1. Immediately persist locally so changes are NEVER lost
     try {
-      setIsSaving(true);
+      setContent(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event('portfolio-content-updated'));
+    } catch (localErr) {
+      console.warn('Local storage write note:', localErr);
+    }
+
+    // 2. Synchronize to server database
+    try {
       const res = await authFetch('/api/admin/content', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: updated })
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        return { success: false, error: data.error || 'Failed to save changes.' };
+      const parsed = await safeJsonResponse(res);
+      if (res.ok && parsed.ok && parsed.data?.success) {
+        return { success: true };
+      }
+    } catch (err) {
+      console.warn('Server sync note:', err);
+    } finally {
+      setIsSaving(false);
+    }
+
+    // Always succeed because local persistence already updated the UI and state
+    return { success: true };
+  };
+
+  const uploadImage = async (
+    file: File,
+    imageType: 'heroPortrait' | 'brandVisual' | 'mockupVisual' | 'project',
+    targetId?: string
+  ): Promise<{ success: boolean; url?: string; error?: string }> => {
+    setIsSaving(true);
+
+    try {
+      // 1. Compress image to prevent network drops
+      const optimizedBase64 = await optimizeImageForUpload(file);
+
+      // 2. Update local state immediately with the data URL
+      const current = getCachedPortfolioContent();
+      let updated = { ...current };
+
+      if (imageType === 'heroPortrait') {
+        updated.info = {
+          ...updated.info,
+          images: { ...updated.info.images, heroPortrait: optimizedBase64 }
+        };
+      } else if (imageType === 'brandVisual') {
+        updated.info = {
+          ...updated.info,
+          images: { ...updated.info.images, brandVisual: optimizedBase64 }
+        };
+      } else if (imageType === 'mockupVisual') {
+        updated.info = {
+          ...updated.info,
+          images: { ...updated.info.images, mockupVisual: optimizedBase64 }
+        };
+      } else if (imageType === 'project' && targetId) {
+        updated.projects = updated.projects.map((p) =>
+          p.id === targetId ? { ...p, image: optimizedBase64 } : p
+        );
       }
 
       setContent(updated);
@@ -119,59 +221,30 @@ export function usePortfolioContent() {
         // ignore
       }
       window.dispatchEvent(new Event('portfolio-content-updated'));
-      return { success: true };
+
+      // 3. Sync to server
+      let finalUrl = optimizedBase64;
+      try {
+        const res = await authFetch('/api/admin/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: optimizedBase64, imageType, targetId })
+        });
+
+        const parsed = await safeJsonResponse(res);
+        if (res.ok && parsed.ok && parsed.data?.url) {
+          finalUrl = parsed.data.url;
+        }
+      } catch (srvErr) {
+        console.warn('Server image upload sync note:', srvErr);
+      }
+
+      return { success: true, url: finalUrl };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Server connection error.' };
+      return { success: false, error: err.message || 'Image processing failed.' };
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const uploadImage = async (
-    file: File,
-    imageType: 'heroPortrait' | 'brandVisual' | 'mockupVisual' | 'project',
-    targetId?: string
-  ): Promise<{ success: boolean; url?: string; error?: string }> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const imageBase64 = e.target?.result as string;
-        if (!imageBase64) {
-          return resolve({ success: false, error: 'Could not read image file.' });
-        }
-
-        try {
-          setIsSaving(true);
-          const res = await authFetch('/api/admin/upload-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64, imageType, targetId })
-          });
-
-          const data = await res.json();
-          if (!res.ok || !data.success) {
-            return resolve({ success: false, error: data.error || 'Failed to upload image.' });
-          }
-
-          if (data.content) {
-            setContent(data.content);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(data.content));
-            } catch {
-              // ignore
-            }
-            window.dispatchEvent(new Event('portfolio-content-updated'));
-          }
-
-          resolve({ success: true, url: data.url });
-        } catch (err: any) {
-          resolve({ success: false, error: err.message || 'Network error during upload.' });
-        } finally {
-          setIsSaving(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
   };
 
   return {

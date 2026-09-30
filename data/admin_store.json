@@ -13,7 +13,8 @@
   },
   "invalidatedTokens": [
     "50b9750f46081a31bc23c7dafab7e971",
-    "82f19bc722d8fa21e124b7b4dcabc175"
+    "82f19bc722d8fa21e124b7b4dcabc175",
+    "14c9e8dce07b75a0efa6caa285350c2c"
   ],
   "appointments": [
     {
@@ -143,6 +144,48 @@
     }
   ],
   "systemLogs": [
+    {
+      "id": "log-1790780455994",
+      "timestamp": "2026-09-30T15:00:55.994Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1790780321019",
+      "timestamp": "2026-09-30T14:58:41.019Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1790780320910",
+      "timestamp": "2026-09-30T14:58:40.910Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1790779875375",
+      "timestamp": "2026-09-30T14:51:15.375Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1790779482615",
+      "timestamp": "2026-09-30T14:44:42.615Z",
+      "event": "Owner Logged Out",
+      "level": "SECURITY",
+      "details": "Session 14c9e8dc invalidated."
+    },
+    {
+      "id": "log-1790779471886",
+      "timestamp": "2026-09-30T14:44:31.886Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
     {
       "id": "log-1790779390901",
       "timestamp": "2026-09-30T14:43:10.901Z",
@@ -328,7 +371,7 @@
       "workingHours": "24 Hours Open (24/7)",
       "availabilityStatus": "24 Hours Open • Always Active",
       "images": {
-        "heroPortrait": "/my-picture.jpeg",
+        "heroPortrait": "/my-picture.jpeg?v=1790779896277",
         "brandVisual": "/assets/images/nnd_brand_visual_1788969013167.jpg",
         "mockupVisual": "/assets/images/digital_mockup_1788969042280.jpg"
       }
