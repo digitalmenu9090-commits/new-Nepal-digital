@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Loader } from './components/Loader';
 import { BackgroundParticles } from './components/BackgroundParticles';
 import { Navbar } from './components/Navbar';
@@ -180,14 +181,17 @@ export default function App() {
     }
 
     return (
-      <AdminDashboard
-        onLogout={() => {
-          setIsAuthenticated(false);
-          handleExitToWebsite();
-        }}
-        onViewWebsite={handleExitToWebsite}
-        initialMustChangePassword={mustChangePassword}
-      />
+      <>
+        <AdminDashboard
+          onLogout={() => {
+            setIsAuthenticated(false);
+            handleExitToWebsite();
+          }}
+          onViewWebsite={handleExitToWebsite}
+          initialMustChangePassword={mustChangePassword}
+        />
+        <SpeedInsights />
+      </>
     );
   }
 
@@ -230,6 +234,7 @@ export default function App() {
         <Footer onOpenOwnerPortal={handleOpenOwnerPortal} />
         <WhatsAppChat />
       </div>
+      <SpeedInsights />
     </div>
   );
 }
