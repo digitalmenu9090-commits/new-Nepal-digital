@@ -14,6 +14,7 @@ import {
   Clock
 } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
+import { buildApiUrl } from '../utils/adminAuth';
 
 interface ContactSectionProps {
   initialService?: string;
@@ -75,7 +76,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ initialService }
 
     setIsSubmitting(true);
     try {
-      await fetch('/api/appointments', {
+      await fetch(buildApiUrl('/api/appointments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

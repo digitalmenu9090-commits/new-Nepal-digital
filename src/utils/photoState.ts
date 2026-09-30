@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
+import { buildApiUrl } from './adminAuth';
 
 const STORAGE_KEY = 'aadrash_portfolio_custom_photo_v2';
 
@@ -51,7 +52,7 @@ export function usePortfolioPhoto() {
   const syncToServer = async (dataUrl: string) => {
     try {
       setIsSaving(true);
-      await fetch('/api/upload-photo', {
+      await fetch(buildApiUrl('/api/upload-photo'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: dataUrl })

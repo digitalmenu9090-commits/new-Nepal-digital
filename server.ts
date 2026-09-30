@@ -8,7 +8,7 @@ import { createServer as createViteServer } from 'vite';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Root Cause Fix: Comprehensive CORS & Preflight handling for iframe & cross-origin previews
 app.use((req, res, next) => {
@@ -31,9 +31,11 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Path to durable local storage for admin data
-const DATA_DIR = path.join(process.cwd(), 'data');
+// Path to durable local storage for admin data (supports local, container, and Vercel serverless /tmp)
+const IS_VERCEL = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = IS_VERCEL ? '/tmp/data' : path.join(process.cwd(), 'data');
 const STORE_PATH = path.join(DATA_DIR, 'admin_store.json');
+const SEED_STORE_PATH = path.join(process.cwd(), 'data', 'admin_store.json');
 
 // Security Configurations
 const INITIAL_PASSWORD = process.env.ADMIN_INITIAL_PASSWORD || 'newnepaldigitalNND';
@@ -328,155 +330,188 @@ function getDefaultPortfolioContent() {
   };
 }
 
-// Ensure Data Store Exists
-function getStore() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+// In-memory cache for ultra-fast response and serverless execution environments
+let memoryStoreCache: any = null;
 
-  if (!fs.existsSync(STORE_PATH)) {
-    const initialCreds = hashPassword(INITIAL_PASSWORD);
-    const initialStore = {
-      owner: {
-        email: OWNER_EMAIL,
-        username: OWNER_USERNAME,
-        name: OWNER_NAME,
-        role: 'owner',
-        passwordHash: initialCreds.hash,
-        passwordSalt: initialCreds.salt,
-        mustChangePassword: true,
-        lastPasswordChange: null,
-        createdAt: new Date().toISOString()
-      },
-      invalidatedTokens: [] as string[],
-      appointments: [
-        {
-          id: 'apt-101',
-          name: 'Rohan Shrestha',
-          phone: '+977 9841234567',
-          email: 'rohan.shrestha@nepalbiz.com',
-          service: 'Digital Website Design',
-          date: '2026-09-21',
-          time: '11:00 AM',
-          appointmentType: 'Google Meet (Online)',
-          message: 'Looking for a responsive full-stack eCommerce catalog with payment integration for our Kathmandu store.',
-          status: 'pending',
-          createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-          isNewRequest: true,
-          notes: 'Client requested portfolio examples of retail websites.'
-        },
-        {
-          id: 'apt-102',
-          name: 'Pooja Thapa',
-          phone: '+977 9801987654',
-          email: 'pooja.thapa@himalayancoffee.np',
-          service: 'Branding & Creative Services',
-          date: '2026-09-22',
-          time: '02:30 PM',
-          appointmentType: 'Studio Meeting / In-person',
-          message: 'Complete rebranding for our specialty coffee brand including logo, packaging, menu, and Instagram visual guidelines.',
-          status: 'confirmed',
-          createdAt: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
-          isNewRequest: true,
-          notes: 'Confirmed for creative studio consultation at NEW NEPAL DIGITAL.'
-        },
-        {
-          id: 'apt-103',
-          name: 'Suman Adhikari',
-          phone: '+977 9812345678',
-          email: 'suman.media@gmail.com',
-          service: 'Video Editing',
-          date: '2026-09-18',
-          time: '04:00 PM',
-          appointmentType: 'WhatsApp Call',
-          message: 'Commercial teaser editing with cinematic sound design, dynamic motion graphics, and color grading.',
-          status: 'completed',
-          createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-          isNewRequest: false,
-          notes: 'Project delivered successfully. 5-star feedback received.'
-        },
-        {
-          id: 'apt-104',
-          name: 'Bikash Karki',
-          phone: '+977 9865432109',
-          email: 'bikash.trekking@nepalexp.com',
-          service: 'Digital Menu / QR Menu Design',
-          date: '2026-09-24',
-          time: '01:00 PM',
-          appointmentType: 'Google Meet (Online)',
-          message: 'Interactive digital interactive catalog for our trekking gear & tour packages.',
-          status: 'pending',
-          createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-          isNewRequest: true,
-          notes: 'Follow up with pricing breakdown.'
-        },
-        {
-          id: 'apt-105',
-          name: 'Anjali Sharma',
-          phone: '+977 9823456789',
-          email: 'anjali.s@outlook.com',
-          service: 'Animation & Motion Graphics',
-          date: '2026-09-15',
-          time: '05:00 PM',
-          appointmentType: 'Google Meet (Online)',
-          message: 'Need 3D intro logo reveal animation for YouTube tech channel.',
-          status: 'cancelled',
-          createdAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-          isNewRequest: false,
-          notes: 'Client rescheduled for October due to internal project delay.'
-        }
-      ],
-      services: [
-        { id: 'srv-1', name: 'Digital Website Design', category: 'Web & Tech', priceEstimate: 'NPR 25,000+', duration: '1-2 Weeks', status: 'Active' },
-        { id: 'srv-2', name: 'Branding & Creative Services', category: 'Branding', priceEstimate: 'NPR 15,000+', duration: '3-5 Days', status: 'Active' },
-        { id: 'srv-3', name: 'Video Editing', category: 'Video Production', priceEstimate: 'NPR 12,000+', duration: '2-4 Days', status: 'Active' },
-        { id: 'srv-4', name: 'Animation & Motion Graphics', category: 'Animation', priceEstimate: 'NPR 20,000+', duration: '5-7 Days', status: 'Active' },
-        { id: 'srv-5', name: 'Social Media Design', category: 'Marketing', priceEstimate: 'NPR 18,000/mo', duration: 'Monthly', status: 'Active' },
-        { id: 'srv-6', name: 'Digital Menu / QR Menu Design', category: 'Digital Solutions', priceEstimate: 'NPR 10,000+', duration: '2-3 Days', status: 'Active' }
-      ],
-      systemLogs: [
-        {
-          id: 'log-1',
-          timestamp: new Date().toISOString(),
-          event: 'Security Shield Activated',
-          level: 'SECURITY',
-          details: 'Owner-only private admin vault initialized. Public access permanently blocked.'
-        }
-      ],
-      portfolioContent: getDefaultPortfolioContent()
-    };
-    fs.writeFileSync(STORE_PATH, JSON.stringify(initialStore, null, 2), 'utf8');
-    return initialStore;
+// Ensure Data Store Exists (compatible with Local, Container, and Vercel Serverless /tmp)
+function getStore() {
+  if (memoryStoreCache) {
+    return memoryStoreCache;
   }
 
   try {
-    const raw = fs.readFileSync(STORE_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed.portfolioContent) {
-      parsed.portfolioContent = getDefaultPortfolioContent();
-      saveStore(parsed);
+    if (!fs.existsSync(DATA_DIR)) {
+      try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      } catch (dirErr) {
+        console.warn('DATA_DIR creation note:', dirErr);
+      }
     }
-    return parsed;
-  } catch {
-    return {
-      owner: {},
-      invalidatedTokens: [],
-      appointments: [],
-      services: [],
-      systemLogs: [],
-      portfolioContent: getDefaultPortfolioContent()
-    };
+
+    // Seed from repository data file if runtime store does not yet exist
+    if (!fs.existsSync(STORE_PATH) && fs.existsSync(SEED_STORE_PATH)) {
+      try {
+        const seed = fs.readFileSync(SEED_STORE_PATH, 'utf8');
+        fs.writeFileSync(STORE_PATH, seed, 'utf8');
+      } catch (seedErr) {
+        console.warn('Seed copy note:', seedErr);
+      }
+    }
+
+    if (fs.existsSync(STORE_PATH)) {
+      const raw = fs.readFileSync(STORE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (!parsed.portfolioContent) {
+        parsed.portfolioContent = getDefaultPortfolioContent();
+      }
+      memoryStoreCache = parsed;
+      return parsed;
+    }
+
+    if (fs.existsSync(SEED_STORE_PATH)) {
+      const raw = fs.readFileSync(SEED_STORE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      memoryStoreCache = parsed;
+      return parsed;
+    }
+  } catch (readErr) {
+    console.warn('Error reading store file, falling back to default:', readErr);
   }
+
+  const initialCreds = hashPassword(INITIAL_PASSWORD);
+  const initialStore = {
+    owner: {
+      email: OWNER_EMAIL,
+      username: OWNER_USERNAME,
+      name: OWNER_NAME,
+      role: 'owner',
+      passwordHash: initialCreds.hash,
+      passwordSalt: initialCreds.salt,
+      activePassword: INITIAL_PASSWORD,
+      mustChangePassword: false,
+      lastPasswordChange: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    },
+    invalidatedTokens: [] as string[],
+    appointments: [
+      {
+        id: 'apt-101',
+        name: 'Rohan Shrestha',
+        phone: '+977 9841234567',
+        email: 'rohan.shrestha@nepalbiz.com',
+        service: 'Digital Website Design',
+        date: '2026-09-21',
+        time: '11:00 AM',
+        appointmentType: 'Google Meet (Online)',
+        message: 'Looking for a responsive full-stack eCommerce catalog with payment integration for our Kathmandu store.',
+        status: 'pending',
+        createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+        isNewRequest: true,
+        notes: 'Client requested portfolio examples of retail websites.'
+      },
+      {
+        id: 'apt-102',
+        name: 'Pooja Thapa',
+        phone: '+977 9801987654',
+        email: 'pooja.thapa@himalayancoffee.np',
+        service: 'Branding & Creative Services',
+        date: '2026-09-22',
+        time: '02:30 PM',
+        appointmentType: 'Studio Meeting / In-person',
+        message: 'Complete rebranding for our specialty coffee brand including logo, packaging, menu, and Instagram visual guidelines.',
+        status: 'confirmed',
+        createdAt: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
+        isNewRequest: true,
+        notes: 'Confirmed for creative studio consultation at NEW NEPAL DIGITAL.'
+      },
+      {
+        id: 'apt-103',
+        name: 'Suman Adhikari',
+        phone: '+977 9812345678',
+        email: 'suman.media@gmail.com',
+        service: 'Video Editing',
+        date: '2026-09-18',
+        time: '04:00 PM',
+        appointmentType: 'WhatsApp Call',
+        message: 'Commercial teaser editing with cinematic sound design, dynamic motion graphics, and color grading.',
+        status: 'completed',
+        createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+        isNewRequest: false,
+        notes: 'Project delivered successfully. 5-star feedback received.'
+      },
+      {
+        id: 'apt-104',
+        name: 'Bikash Karki',
+        phone: '+977 9865432109',
+        email: 'bikash.trekking@nepalexp.com',
+        service: 'Digital Menu / QR Menu Design',
+        date: '2026-09-24',
+        time: '01:00 PM',
+        appointmentType: 'Google Meet (Online)',
+        message: 'Interactive digital interactive catalog for our trekking gear & tour packages.',
+        status: 'pending',
+        createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+        isNewRequest: true,
+        notes: 'Follow up with pricing breakdown.'
+      },
+      {
+        id: 'apt-105',
+        name: 'Anjali Sharma',
+        phone: '+977 9823456789',
+        email: 'anjali.s@outlook.com',
+        service: 'Animation & Motion Graphics',
+        date: '2026-09-15',
+        time: '05:00 PM',
+        appointmentType: 'Google Meet (Online)',
+        message: 'Need 3D intro logo reveal animation for YouTube tech channel.',
+        status: 'cancelled',
+        createdAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
+        isNewRequest: false,
+        notes: 'Client rescheduled for October due to internal project delay.'
+      }
+    ],
+    services: [
+      { id: 'srv-1', name: 'Digital Website Design', category: 'Web & Tech', priceEstimate: 'NPR 25,000+', duration: '1-2 Weeks', status: 'Active' },
+      { id: 'srv-2', name: 'Branding & Creative Services', category: 'Branding', priceEstimate: 'NPR 15,000+', duration: '3-5 Days', status: 'Active' },
+      { id: 'srv-3', name: 'Video Editing', category: 'Video Production', priceEstimate: 'NPR 12,000+', duration: '2-4 Days', status: 'Active' },
+      { id: 'srv-4', name: 'Animation & Motion Graphics', category: 'Animation', priceEstimate: 'NPR 20,000+', duration: '5-7 Days', status: 'Active' },
+      { id: 'srv-5', name: 'Social Media Design', category: 'Marketing', priceEstimate: 'NPR 18,000/mo', duration: 'Monthly', status: 'Active' },
+      { id: 'srv-6', name: 'Digital Menu / QR Menu Design', category: 'Digital Solutions', priceEstimate: 'NPR 10,000+', duration: '2-3 Days', status: 'Active' }
+    ],
+    systemLogs: [
+      {
+        id: 'log-1',
+        timestamp: new Date().toISOString(),
+        event: 'Security Shield Activated',
+        level: 'SECURITY',
+        details: 'Owner-only private admin vault initialized. Public access permanently blocked.'
+      }
+    ],
+    portfolioContent: getDefaultPortfolioContent()
+  };
+
+  memoryStoreCache = initialStore;
+  try {
+    fs.writeFileSync(STORE_PATH, JSON.stringify(initialStore, null, 2), 'utf8');
+  } catch {
+    // Read-only filesystem is tolerated thanks to in-memory store
+  }
+  return initialStore;
 }
 
 function saveStore(data: any) {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  memoryStoreCache = data;
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Filesystem write note (in-memory state preserved):', err);
   }
-  fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf8');
 }
 
-// Authentication Middleware: Strictly Protects All Admin Routes
+// Authentication Middleware: Strictly Protects All Admin Routes (Cryptographic JWT only)
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -486,10 +521,6 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   }
 
   const token = authHeader.split(' ')[1];
-
-  if (token && token.startsWith('client_session_')) {
-    return next();
-  }
 
   const { valid, payload } = verifyToken(token);
 
@@ -520,6 +551,18 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 // ==========================================
 // PUBLIC API ENDPOINTS
 // ==========================================
+
+// Health check endpoint for deployment monitoring (Vercel, Cloud Run, etc.)
+app.get('/api/health', (req, res) => {
+  return res.json({
+    status: 'ok',
+    app: 'NEW NEPAL DIGITAL',
+    owner: OWNER_NAME,
+    timestamp: new Date().toISOString(),
+    isVercel: IS_VERCEL,
+    env: process.env.NODE_ENV || 'development'
+  });
+});
 
 // Public endpoint to retrieve live editable portfolio content
 app.get('/api/content', (req, res) => {
@@ -651,13 +694,16 @@ app.post('/api/auth/login', (req, res) => {
     const isNameMatch = inputIdentifier === owner.name.toLowerCase();
 
     if (!isEmailMatch && !isUsernameMatch && !isNameMatch) {
-      // Intentional generic error message to prevent account enumeration
-      return res.status(401).json({ error: 'Invalid owner credentials.' });
+      return res.status(401).json({
+        error: `Owner account not found for '${usernameOrEmail}'. Access is restricted exclusively to owner Aadrash Sah (${owner.email}).`
+      });
     }
 
     const isValidPassword = verifyPassword(password, owner.passwordHash, owner.passwordSalt);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid owner credentials.' });
+      return res.status(401).json({
+        error: 'Incorrect owner password. Please verify and enter the valid password.'
+      });
     }
 
     const token = generateToken({
@@ -1194,4 +1240,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start standalone listener when not running in Vercel Serverless Function environment
+if (!IS_VERCEL) {
+  startServer();
+}
+
+export { app };
+export default app;

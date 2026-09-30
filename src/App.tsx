@@ -15,7 +15,7 @@ import { Footer } from './components/Footer';
 import { WhatsAppChat } from './components/WhatsAppChat';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { authFetch, getStoredToken } from './utils/adminAuth';
+import { authFetch, getStoredToken, safeJsonResponse, clearStoredAuth } from './utils/adminAuth';
 import { Lock } from 'lucide-react';
 
 export default function App() {
@@ -30,11 +30,23 @@ export default function App() {
       window.location.hash === '#admin' ||
       window.location.hash === '#dashboard' ||
       window.location.search.includes('admin=true') ||
-      window.location.search.includes('admin=1'));
+      window.location.search.includes('admin=1') ||
+      sessionStorage.getItem('nnd_admin_active_view') === 'admin');
 
   const [currentView, setCurrentView] = useState<'website' | 'admin'>(
     isInitialAdmin ? 'admin' : 'website'
   );
+
+  // Sync active view to sessionStorage so refreshing on production maintains dashboard
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (currentView === 'admin') {
+        sessionStorage.setItem('nnd_admin_active_view', 'admin');
+      } else {
+        sessionStorage.removeItem('nnd_admin_active_view');
+      }
+    }
+  }, [currentView]);
 
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -53,14 +65,16 @@ export default function App() {
 
       try {
         const res = await authFetch('/api/auth/verify');
-        const data = await res.json();
-        if (data.authenticated) {
+        const parsed = await safeJsonResponse(res);
+        if (parsed.ok && parsed.data?.authenticated) {
           setIsAuthenticated(true);
-          setMustChangePassword(Boolean(data.mustChangePassword));
+          setMustChangePassword(Boolean(parsed.data.mustChangePassword));
         } else {
+          clearStoredAuth();
           setIsAuthenticated(false);
         }
       } catch (err) {
+        console.warn('Auth verification note:', err);
         setIsAuthenticated(false);
       } finally {
         setIsVerifyingAuth(false);

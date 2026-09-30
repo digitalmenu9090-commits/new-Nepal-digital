@@ -5,6 +5,15 @@ const CUSTOM_PWD_KEY = 'nnd_owner_custom_pwd_v1';
 export const OWNER_DEFAULT_EMAIL = 'videographics27@gmail.com';
 export const OWNER_DEFAULT_PWD = 'newnepaldigitalNND';
 
+// Production API Base URL:
+// - If deployed on Vercel as a fullstack app or in Cloud Run, API_BASE_URL is empty (''), using same-origin relative URLs.
+// - If the frontend is hosted separately on Vercel and backend is hosted elsewhere, configure VITE_API_BASE_URL in Vercel settings.
+export const API_BASE_URL = (
+  (import.meta.env.VITE_API_BASE_URL as string) ||
+  (import.meta.env.VITE_API_URL as string) ||
+  ''
+).replace(/\/$/, '');
+
 export function getStoredOwnerPassword(): string {
   try {
     return localStorage.getItem(CUSTOM_PWD_KEY) || OWNER_DEFAULT_PWD;
@@ -59,13 +68,20 @@ export function getStoredUser(): any | null {
   }
 }
 
-// Build URL with AI Studio reverse proxy auth tokens if present to avoid 302 redirects
+// Build URL: Handles production API base URLs and AI Studio iframe reverse-proxy query parameters
 export function buildApiUrl(path: string): string {
   try {
-    if (typeof window === 'undefined') return path;
-    const url = new URL(path, window.location.origin);
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    if (API_BASE_URL) {
+      return `${API_BASE_URL}${cleanPath}`;
+    }
+
+    if (typeof window === 'undefined') return cleanPath;
+
+    const url = new URL(cleanPath, window.location.origin);
     const currentParams = new URLSearchParams(window.location.search);
-    
+
     const token = currentParams.get('___aistudio_auth_token');
     const sessionIndex = currentParams.get('___session_index');
     if (token && !url.searchParams.has('___aistudio_auth_token')) {
@@ -74,6 +90,7 @@ export function buildApiUrl(path: string): string {
     if (sessionIndex && !url.searchParams.has('___session_index')) {
       url.searchParams.set('___session_index', sessionIndex);
     }
+
     return url.pathname + url.search;
   } catch {
     return path;
@@ -124,9 +141,8 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
 
     return response;
   } catch (err) {
-    console.warn(`authFetch connection attempt to ${url} failed:`, err);
-    // Return a synthesized response object so callers don't throw uncaught network errors
-    return new Response(JSON.stringify({ error: 'Network communication interrupted.' }), {
+    console.warn(`authFetch connection attempt to ${resolvedUrl} failed:`, err);
+    return new Response(JSON.stringify({ error: 'Network communication interrupted. Please check backend connection.' }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -141,22 +157,22 @@ export interface LoginResult {
   error?: string;
 }
 
-// Root-Cause Fixed Owner Login: Tries server first, gracefully falls back to local verification
+// Real Cryptographic Authentication Flow against Backend API (No fake/mock auth)
 export async function performOwnerLogin(
   usernameOrEmail: string,
   password: string,
   rememberMe: boolean = true
 ): Promise<LoginResult> {
-  const cleanId = String(usernameOrEmail || '').trim().toLowerCase();
+  const cleanId = String(usernameOrEmail || '').trim();
   const cleanPwd = String(password || '').trim();
 
   if (!cleanId || !cleanPwd) {
     return { success: false, error: 'Please enter both email/username and password.' };
   }
 
-  // 1. Attempt Server-side authentication
+  const url = buildApiUrl('/api/auth/login');
+
   try {
-    const url = buildApiUrl('/api/auth/login');
     const res = await fetch(url, {
       method: 'POST',
       credentials: 'include',
@@ -179,51 +195,29 @@ export async function performOwnerLogin(
           mustChangePassword: Boolean(parsed.data.mustChangePassword)
         };
       } else {
+        // Return clear, exact authentication error from server
         return {
           success: false,
-          error: parsed.data.error || 'Invalid owner credentials.'
+          error: parsed.data.error || 'Authentication failed. Please verify your credentials.'
         };
       }
+    } else {
+      if (parsed.isHtml || res.status === 404) {
+        return {
+          success: false,
+          error: `Backend API endpoint not found (HTTP ${res.status} at ${url}). If deploying on Vercel, ensure the API routes / serverless functions are deployed.`
+        };
+      }
+      return {
+        success: false,
+        error: `Server responded with status ${res.status}. Please check backend logs.`
+      };
     }
-  } catch (netErr) {
-    console.warn('Network call to /api/auth/login encountered an issue, checking fallback credentials:', netErr);
-  }
-
-  // 2. Resilient Client-side Verification Fallback
-  // Prevents "Server connection error" when third-party iframe cookies are blocked in AI Studio Cloud Run
-  const validOwnerIdentifiers = [
-    'videographics27@gmail.com',
-    'aadrash',
-    'aadrash kumar sah',
-    'aadrash sah'
-  ];
-
-  const isOwnerMatch = validOwnerIdentifiers.includes(cleanId);
-  const activePassword = getStoredOwnerPassword();
-  const isPasswordMatch =
-    cleanPwd === activePassword ||
-    cleanPwd === 'newnepaldigitalNND' ||
-    cleanPwd === 'newnepaldigital9090';
-
-  if (isOwnerMatch && isPasswordMatch) {
-    const fallbackUser = {
-      name: 'Aadrash Kumar Sah',
-      email: 'videographics27@gmail.com',
-      username: 'aadrash',
-      role: 'owner'
-    };
-    const clientToken = `client_session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    setStoredAuth(clientToken, fallbackUser, rememberMe);
+  } catch (netErr: any) {
+    console.error('Owner login network failure:', netErr);
     return {
-      success: true,
-      token: clientToken,
-      user: fallbackUser,
-      mustChangePassword: false
+      success: false,
+      error: `Server connection error: Unable to reach backend at ${url}. Check your network connection or API URL configuration.`
     };
   }
-
-  return {
-    success: false,
-    error: 'Invalid owner credentials. Please check your password.'
-  };
 }
