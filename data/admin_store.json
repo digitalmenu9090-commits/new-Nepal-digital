@@ -4,15 +4,16 @@
     "username": "aadrash",
     "name": "Aadrash Kumar Sah",
     "role": "owner",
-    "activePassword": "newnepaldigital9090",
-    "passwordHash": "41937ca1bf02c038804bb4f22c6a1b6e4aaa1a676cb98fa78f8f8e4634b9c552dffc71ef42b44097f30526445934cf7f11095f39979cb30fd8da9f66d3785f92",
-    "passwordSalt": "764df8a1171cfc708ac32a2186ee6208",
+    "activePassword": "newnepaldigitalNND",
+    "passwordHash": "b90feb69a293ef40716c29991d6f425e97fa98a4b451b3af799e86bd38503d11507bcf3db00968b36e1f6d6a6afab39f063c5de4d620cd4ef61bba52ce1fccdf",
+    "passwordSalt": "49844fe191d71bae3cc8444bdc1084d7",
     "mustChangePassword": false,
-    "lastPasswordChange": "2026-09-19T14:38:00.000Z",
+    "lastPasswordChange": "2026-09-30T14:42:05.675Z",
     "createdAt": "2026-09-19T14:32:23.494Z"
   },
   "invalidatedTokens": [
-    "50b9750f46081a31bc23c7dafab7e971"
+    "50b9750f46081a31bc23c7dafab7e971",
+    "82f19bc722d8fa21e124b7b4dcabc175"
   ],
   "appointments": [
     {
@@ -142,6 +143,27 @@
     }
   ],
   "systemLogs": [
+    {
+      "id": "log-1790779390901",
+      "timestamp": "2026-09-30T14:43:10.901Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
+    {
+      "id": "log-1790778660007",
+      "timestamp": "2026-09-30T14:31:00.007Z",
+      "event": "Owner Logged Out",
+      "level": "SECURITY",
+      "details": "Session 82f19bc7 invalidated."
+    },
+    {
+      "id": "log-1790778652123",
+      "timestamp": "2026-09-30T14:30:52.123Z",
+      "event": "Owner Authenticated",
+      "level": "SECURITY",
+      "details": "Successful owner login by Aadrash Kumar Sah (videographics27@gmail.com)"
+    },
     {
       "id": "log-1790771233412",
       "timestamp": "2026-09-30T12:27:13.412Z",

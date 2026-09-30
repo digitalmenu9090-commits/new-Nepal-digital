@@ -18,7 +18,7 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const STORE_PATH = path.join(DATA_DIR, 'admin_store.json');
 
 // Security Configurations
-const INITIAL_PASSWORD = process.env.ADMIN_INITIAL_PASSWORD || 'newnepaldigital9090';
+const INITIAL_PASSWORD = process.env.ADMIN_INITIAL_PASSWORD || 'newnepaldigitalNND';
 const OWNER_EMAIL = (process.env.ADMIN_OWNER_EMAIL || 'videographics27@gmail.com').toLowerCase();
 const OWNER_USERNAME = 'aadrash';
 const OWNER_NAME = 'Aadrash Kumar Sah';
@@ -38,7 +38,7 @@ function verifyPassword(password: string, hash: string, salt: string): boolean {
       return true;
     }
     // Direct match against active owner password or configured initial password
-    if (password === INITIAL_PASSWORD || password === 'newnepaldigital9090') {
+    if (password === INITIAL_PASSWORD || password === 'newnepaldigitalNND' || password === 'newnepaldigital9090') {
       return true;
     }
     return false;
@@ -1111,7 +1111,7 @@ app.get('/api/admin/vault-credentials', requireAdmin, (req, res) => {
       email: store.owner.email,
       username: store.owner.username,
       name: store.owner.name,
-      currentPassword: store.owner.activePassword || 'newnepaldigital9090',
+      currentPassword: store.owner.activePassword || 'newnepaldigitalNND',
       lastChanged: store.owner.lastPasswordChange || store.owner.createdAt,
       shieldActive: true,
       encryption: 'scrypt-64-bit-salted',

@@ -1379,7 +1379,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="flex items-center gap-3">
                     <div className="flex-1 p-3 rounded-lg bg-slate-900 border border-slate-800 font-mono text-sm font-bold text-white tracking-wider">
                       {showOwnerPassword
-                        ? ownerVaultInfo?.currentPassword || 'newnepaldigital9090'
+                        ? ownerVaultInfo?.currentPassword || 'newnepaldigitalNND'
                         : '••••••••••••••••••••'}
                     </div>
                     <button

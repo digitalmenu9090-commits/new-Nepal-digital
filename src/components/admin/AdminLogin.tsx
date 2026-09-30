@@ -62,7 +62,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
   };
 
   const handleQuickFillPassword = () => {
-    setPassword('newnepaldigital9090');
+    setPassword('newnepaldigitalNND');
     setErrorMessage('');
   };
 
