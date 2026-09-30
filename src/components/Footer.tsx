@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock } from 'lucide-react';
+import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock, Lock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
 interface FooterProps {
@@ -131,6 +131,17 @@ export const Footer: React.FC<FooterProps> = ({ onOpenOwnerPortal }) => {
               <span>Powered by</span>
               <span className="text-cyan-400 font-mono font-medium">{PORTFOLIO_INFO.brand}</span>
             </div>
+
+            {onOpenOwnerPortal && (
+              <button
+                type="button"
+                onClick={onOpenOwnerPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500/40 text-[11px] font-mono text-slate-300 hover:text-cyan-300 transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Admin Dashboard</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

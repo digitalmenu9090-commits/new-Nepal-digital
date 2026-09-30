@@ -16,6 +16,7 @@ import { WhatsAppChat } from './components/WhatsAppChat';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { authFetch, getStoredToken } from './utils/adminAuth';
+import { Lock } from 'lucide-react';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -233,7 +234,7 @@ export default function App() {
 
       {/* Main Portfolio Content */}
       <div className={`transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-        <Navbar activeSection={activeSection} />
+        <Navbar activeSection={activeSection} onOpenAdmin={handleOpenOwnerPortal} />
 
         <main>
           <Hero
@@ -258,6 +259,16 @@ export default function App() {
 
         <Footer onOpenOwnerPortal={handleOpenOwnerPortal} />
         <WhatsAppChat />
+
+        {/* Floating Quick Admin Access Button */}
+        <button
+          onClick={handleOpenOwnerPortal}
+          title="Open Admin Dashboard"
+          className="fixed bottom-5 left-5 z-40 flex items-center gap-2 px-3.5 py-2 rounded-full bg-slate-950/95 hover:bg-cyan-950 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 hover:text-white shadow-2xl backdrop-blur-md transition-all active:scale-95 cursor-pointer group"
+        >
+          <Lock className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+          <span className="text-xs font-mono font-bold tracking-wider">Admin</span>
+        </button>
       </div>
     </div>
   );

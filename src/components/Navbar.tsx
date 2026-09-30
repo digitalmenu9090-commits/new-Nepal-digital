@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, PhoneCall, Sparkles, Instagram, ArrowUpRight, Clock } from 'lucide-react';
+import { Menu, X, PhoneCall, Sparkles, Instagram, ArrowUpRight, Clock, Lock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
 interface NavbarProps {
   activeSection: string;
+  onOpenAdmin?: () => void;
 }
 
 const NAV_ITEMS = [
@@ -17,7 +18,7 @@ const NAV_ITEMS = [
   { id: 'contact', label: 'Contact' },
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeSection, onOpenAdmin }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -121,6 +122,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
                 <ArrowUpRight className="w-3.5 h-3.5 group-hover:rotate-45 transition-transform" />
               </span>
             </button>
+
+            {onOpenAdmin && (
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                title="Open Admin Dashboard"
+                className="p-2 rounded-full bg-slate-900/80 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Lock className="w-3.5 h-3.5 text-cyan-400" />
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Toggle Button */}
@@ -183,6 +195,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection }) => {
                 >
                   Let's Connect
                 </button>
+                {onOpenAdmin && (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenAdmin();
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-semibold flex items-center justify-center gap-2"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Open Admin Dashboard</span>
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
