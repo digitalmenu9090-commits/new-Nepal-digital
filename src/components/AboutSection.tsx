@@ -6,6 +6,7 @@ import { usePortfolioPhoto } from '../utils/photoState';
 
 export const AboutSection: React.FC = () => {
   const { photo } = usePortfolioPhoto();
+
   return (
     <section id="about" className="relative py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Glow backgrounds */}
@@ -43,7 +44,7 @@ export const AboutSection: React.FC = () => {
           >
             <div className="relative rounded-2xl glass-panel p-4 sm:p-5 border border-cyan-500/30 overflow-hidden group bg-[#050b18]/90 shadow-2xl space-y-4">
               {/* Founder Photo Frame */}
-              <div className="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-cyan-500/20">
+              <div className="relative rounded-xl overflow-hidden aspect-[4/5] bg-slate-950 border border-cyan-500/20 group/photo">
                 <img
                   src={photo}
                   alt={PORTFOLIO_INFO.name}

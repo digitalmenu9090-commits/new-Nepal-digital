@@ -39,7 +39,9 @@ import {
   UserCheck,
   Copy,
   Check,
-  Lock
+  Lock,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { Appointment, AdminStats, CustomerSummary, StudioService, SystemLog } from '../../types/admin';
 import { authFetch, clearStoredAuth } from '../../utils/adminAuth';
@@ -47,6 +49,7 @@ import { AppointmentDetailsModal } from './AppointmentDetailsModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import { PasswordChangeModal } from './PasswordChangeModal';
 import { PORTFOLIO_INFO } from '../../data/portfolioData';
+import { usePortfolioPhoto } from '../../utils/photoState';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -107,6 +110,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Live time ticker
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Website Portrait & Profile Picture
+  const { photo: adminPhoto, choosePhotoFile: adminChoosePhoto, resetPhoto: adminResetPhoto, isCustom: isCustomPhoto, isSaving: isPhotoSaving } = usePortfolioPhoto();
+  const adminPhotoInputRef = React.useRef<HTMLInputElement>(null);
+  const [photoSaveSuccess, setPhotoSaveSuccess] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -1269,6 +1277,92 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       value="+977 9717126332"
                       className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white cursor-not-allowed opacity-80"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Website Natural Portrait Management */}
+              <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-heading font-bold text-white flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-cyan-400" />
+                      <span>Website Portrait & Profile Photo</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">
+                      Real authentic photograph displayed on Hero, About, and WhatsApp assistant
+                    </p>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={adminPhotoInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        adminChoosePhoto(file);
+                        setPhotoSaveSuccess(true);
+                        setTimeout(() => setPhotoSaveSuccess(false), 3500);
+                      }
+                    }}
+                  />
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => adminPhotoInputRef.current?.click()}
+                      disabled={isPhotoSaving}
+                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
+                    >
+                      {photoSaveSuccess ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Photo Updated!</span>
+                        </>
+                      ) : isPhotoSaving ? (
+                        <span>Saving...</span>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Natural Photo</span>
+                        </>
+                      )}
+                    </button>
+
+                    {isCustomPhoto && (
+                      <button
+                        type="button"
+                        onClick={adminResetPhoto}
+                        className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs transition-all"
+                      >
+                        Reset Default
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-5 p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                  <div className="relative w-20 h-24 rounded-lg overflow-hidden border border-cyan-500/40 bg-slate-900 shrink-0">
+                    <img
+                      src={adminPhoto}
+                      alt="Aadrash Sah"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="space-y-1 text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold">{PORTFOLIO_INFO.name}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30 text-[10px]">
+                        {isCustomPhoto ? 'Authentic Photo Active' : 'Default Profile Photo'}
+                      </span>
+                    </div>
+                    <p className="text-slate-400">
+                      Select your authentic photo file (e.g. WhatsApp Image) to update instantly across the entire website.
+                    </p>
                   </div>
                 </div>
               </div>

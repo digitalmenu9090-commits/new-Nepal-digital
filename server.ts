@@ -10,7 +10,8 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Path to durable local storage for admin data
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -272,6 +273,52 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 // ==========================================
 // PUBLIC API ENDPOINTS
 // ==========================================
+
+// Endpoint to upload and persist real natural photo
+app.post('/api/upload-photo', (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      return res.status(400).json({ error: 'Valid imageBase64 string is required.' });
+    }
+
+    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const rawBase64 = matches ? matches[2] : imageBase64;
+    const buffer = Buffer.from(rawBase64, 'base64');
+
+    if (buffer.length < 100) {
+      return res.status(400).json({ error: 'Image file is too small or corrupt.' });
+    }
+
+    // Persist directly to public folder
+    const publicDir = path.join(process.cwd(), 'public');
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+
+    fs.writeFileSync(path.join(publicDir, 'my-picture.jpeg'), buffer);
+    fs.writeFileSync(path.join(publicDir, 'my picture.jpeg'), buffer);
+    fs.writeFileSync(path.join(publicDir, 'profile.jpg'), buffer);
+
+    // Also persist in dist if production build exists
+    const distDir = path.join(process.cwd(), 'dist');
+    if (fs.existsSync(distDir)) {
+      try {
+        fs.writeFileSync(path.join(distDir, 'my-picture.jpeg'), buffer);
+        fs.writeFileSync(path.join(distDir, 'my picture.jpeg'), buffer);
+        fs.writeFileSync(path.join(distDir, 'profile.jpg'), buffer);
+      } catch (err) {
+        console.warn('Could not mirror to dist:', err);
+      }
+    }
+
+    console.log(`[PHOTO] Natural photo updated successfully (${(buffer.length / 1024).toFixed(1)} KB)`);
+    return res.json({ success: true, url: `/my-picture.jpeg?v=${Date.now()}` });
+  } catch (err: any) {
+    console.error('Photo upload error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to save photo' });
+  }
+});
 
 // Public Appointment Request Submission
 app.post('/api/appointments', (req, res) => {
