@@ -4,35 +4,47 @@ import digitalMockupImg from '../assets/images/digital_mockup_1788969042280.jpg'
 
 const aadrashPortraitImg = '/my-picture.jpeg';
 
+const getLiveCache = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('aadrash_portfolio_live_content_v1');
+      if (raw) return JSON.parse(raw);
+    }
+  } catch {}
+  return null;
+};
+
+const _liveCache = getLiveCache();
+
 export const PORTFOLIO_INFO = {
-  name: 'Aadrash Sah',
-  title: 'Founder & Digital Creator',
-  brand: 'NEW NEPAL DIGITAL',
-  tagline: 'Your Business, Digitally Better.',
-  welcomeText: 'WELCOME TO MY DIGITAL WORLD',
-  heroHeading: "Hi, I'm Aadrash Sah.",
-  animatedTitles: [
+  name: _liveCache?.info?.name || 'Aadrash Sah',
+  title: _liveCache?.info?.title || 'Founder & Digital Creator',
+  brand: _liveCache?.info?.brand || 'NEW NEPAL DIGITAL',
+  tagline: _liveCache?.info?.tagline || 'Your Business, Digitally Better.',
+  welcomeText: _liveCache?.info?.welcomeText || 'WELCOME TO MY DIGITAL WORLD',
+  heroHeading: _liveCache?.info?.heroHeading || "Hi, I'm Aadrash Sah.",
+  animatedTitles: _liveCache?.info?.animatedTitles || [
     'Founder',
     'Digital Creator',
     'Web Designer',
     'Creative Designer'
   ],
-  heroDescription: 'I create modern digital experiences through web design, graphic design, video editing, branding, animation, and creative technology.',
-  aboutParagraphs: [
+  heroDescription: _liveCache?.info?.heroDescription || 'I create modern digital experiences through web design, graphic design, video editing, branding, animation, and creative technology.',
+  aboutParagraphs: _liveCache?.info?.aboutParagraphs || [
     "I'm Aadrash Sah, a passionate Digital Creator and Founder of NEW NEPAL DIGITAL. I enjoy creating modern websites, digital designs, promotional content, videos, branding materials, and creative digital experiences.",
     "My goal is to combine creativity and technology to create professional digital experiences that help businesses and brands stand out."
   ],
-  contactNumbers: ['9704135338', '9717126332'],
-  instagramHandle: '@black_snow35',
-  instagramUrl: 'https://instagram.com/black_snow35',
-  whatsappNumber: '9704135338',
-  whatsappUrl: 'https://wa.me/9779704135338',
-  workingHours: '24 Hours Open (24/7)',
-  availabilityStatus: '24 Hours Open • Always Active',
+  contactNumbers: _liveCache?.info?.contactNumbers || ['9704135338', '9717126332'],
+  instagramHandle: _liveCache?.info?.instagramHandle || '@black_snow35',
+  instagramUrl: _liveCache?.info?.instagramUrl || 'https://instagram.com/black_snow35',
+  whatsappNumber: _liveCache?.info?.whatsappNumber || '9704135338',
+  whatsappUrl: _liveCache?.info?.whatsappUrl || 'https://wa.me/9779704135338',
+  workingHours: _liveCache?.info?.workingHours || '24 Hours Open (24/7)',
+  availabilityStatus: _liveCache?.info?.availabilityStatus || '24 Hours Open • Always Active',
   images: {
-    heroPortrait: aadrashPortraitImg,
-    brandVisual: nndBrandImg,
-    mockupVisual: digitalMockupImg,
+    heroPortrait: _liveCache?.info?.images?.heroPortrait || aadrashPortraitImg,
+    brandVisual: _liveCache?.info?.images?.brandVisual || nndBrandImg,
+    mockupVisual: _liveCache?.info?.images?.mockupVisual || digitalMockupImg,
   }
 };
 
@@ -178,7 +190,7 @@ export const SKILLS: SkillItem[] = [
   }
 ];
 
-export const SERVICES: ServiceItem[] = [
+export const SERVICES: ServiceItem[] = (_liveCache?.services && _liveCache.services.length > 0) ? _liveCache.services : [
   {
     id: 'digital-website-design',
     title: 'Digital Website Design',
@@ -277,7 +289,7 @@ export const SERVICES: ServiceItem[] = [
   }
 ];
 
-export const PROJECTS: ProjectItem[] = [
+export const PROJECTS: ProjectItem[] = (_liveCache?.projects && _liveCache.projects.length > 0) ? _liveCache.projects : [
   {
     id: 'proj-1',
     title: 'CyberEdge Business Portal',

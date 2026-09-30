@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock, Lock } from 'lucide-react';
+import { PhoneCall, Instagram, ArrowUp, Sparkles, Heart, Clock } from 'lucide-react';
 import { PORTFOLIO_INFO } from '../data/portfolioData';
 
 interface FooterProps {
@@ -8,8 +8,24 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenOwnerPortal }) => {
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimeoutRef = useRef<any>(null);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDiscreetAdminTrigger = () => {
+    setClickCount((prev) => {
+      const next = prev + 1;
+      if (next >= 3) {
+        if (onOpenOwnerPortal) onOpenOwnerPortal();
+        return 0;
+      }
+      if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = setTimeout(() => setClickCount(0), 1200);
+      return next;
+    });
   };
 
   return (
@@ -102,25 +118,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenOwnerPortal }) => {
 
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-          <p>© 2026 Aadrash Sah. All rights reserved.</p>
+          <p
+            onClick={handleDiscreetAdminTrigger}
+            className="cursor-default select-none transition-colors hover:text-slate-300"
+            title=""
+          >
+            © 2026 {PORTFOLIO_INFO.name}. All rights reserved.
+          </p>
           
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span>Powered by</span>
               <span className="text-cyan-400 font-mono font-medium">{PORTFOLIO_INFO.brand}</span>
             </div>
-
-            {onOpenOwnerPortal && (
-              <button
-                type="button"
-                onClick={onOpenOwnerPortal}
-                className="inline-flex items-center gap-1.5 text-slate-500 hover:text-cyan-400 transition-colors cursor-pointer text-xs font-mono ml-2 py-1 px-2 rounded-md hover:bg-slate-900 border border-transparent hover:border-slate-800"
-                title="Secure Owner Administration Portal"
-              >
-                <Lock className="w-3 h-3 text-slate-500 hover:text-cyan-400" />
-                <span>Owner Portal</span>
-              </button>
-            )}
           </div>
         </div>
       </div>

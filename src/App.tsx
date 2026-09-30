@@ -27,7 +27,9 @@ export default function App() {
     typeof window !== 'undefined' &&
     (window.location.pathname.startsWith('/admin') ||
       window.location.hash === '#admin' ||
-      window.location.hash === '#dashboard');
+      window.location.hash === '#dashboard' ||
+      window.location.search.includes('admin=true') ||
+      window.location.search.includes('admin=1'));
 
   const [currentView, setCurrentView] = useState<'website' | 'admin'>(
     isInitialAdmin ? 'admin' : 'website'
@@ -75,13 +77,40 @@ export default function App() {
     return () => window.removeEventListener('owner-auth-invalidated', handleAuthInvalidated);
   }, []);
 
+  // Secret keyboard shortcut triggers: Ctrl+Shift+A, Cmd+Shift+A, or typing "admin"
+  useEffect(() => {
+    let keyBuffer = '';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        window.location.hash = '#admin';
+        setCurrentView('admin');
+        return;
+      }
+
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-5);
+      if (keyBuffer === 'admin') {
+        window.location.hash = '#admin';
+        setCurrentView('admin');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Listen to browser URL changes
   useEffect(() => {
     const handleLocationChange = () => {
       if (
         window.location.pathname.startsWith('/admin') ||
         window.location.hash === '#admin' ||
-        window.location.hash === '#dashboard'
+        window.location.hash === '#dashboard' ||
+        window.location.search.includes('admin=true') ||
+        window.location.search.includes('admin=1')
       ) {
         setCurrentView('admin');
       } else {

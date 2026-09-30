@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard,
   Calendar,
-  Users,
   Briefcase,
-  MessageSquare,
   Settings,
   ShieldCheck,
   LogOut,
-  Bell,
   Search,
   Plus,
   Filter,
@@ -21,8 +18,6 @@ import {
   Mail,
   ExternalLink,
   ChevronRight,
-  TrendingUp,
-  Activity,
   Menu,
   X,
   RefreshCw,
@@ -31,25 +26,27 @@ import {
   KeyRound,
   Sparkles,
   PhoneCall,
-  CalendarDays,
-  CheckCheck,
-  FileText,
-  ShieldAlert,
-  ArrowUpRight,
-  UserCheck,
   Copy,
   Check,
   Lock,
   Camera,
-  Upload
+  Upload,
+  Globe,
+  Image as ImageIcon,
+  FolderKanban,
+  Save,
+  Trash2,
+  Edit3,
+  ShieldAlert,
+  ArrowUpRight
 } from 'lucide-react';
-import { Appointment, AdminStats, CustomerSummary, StudioService, SystemLog } from '../../types/admin';
+import { Appointment, AdminStats, StudioService, SystemLog } from '../../types/admin';
 import { authFetch, clearStoredAuth } from '../../utils/adminAuth';
 import { AppointmentDetailsModal } from './AppointmentDetailsModal';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import { PasswordChangeModal } from './PasswordChangeModal';
-import { PORTFOLIO_INFO } from '../../data/portfolioData';
-import { usePortfolioPhoto } from '../../utils/photoState';
+import { usePortfolioContent, PortfolioContentData } from '../../utils/portfolioContent';
+import { ProjectItem } from '../../types';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -63,7 +60,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   initialMustChangePassword = false
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'appointments' | 'customers' | 'services' | 'messages' | 'settings' | 'security'
+    'dashboard' | 'content' | 'images' | 'projects' | 'services' | 'appointments' | 'security'
   >('dashboard');
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -75,18 +72,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     cancelled: 0,
     newRequests: 0
   });
-  const [serviceBreakdown, setServiceBreakdown] = useState<Record<string, number>>({});
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
-  const [services, setServices] = useState<StudioService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filters & Search
+  // Search & Filters for Appointments
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedServiceFilter, setSelectedServiceFilter] = useState('All Services');
-  const [selectedDateFilter, setSelectedDateFilter] = useState('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
 
   // Modals
@@ -95,68 +87,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(initialMustChangePassword);
 
-  // Owner Private Vault State (Visible only to authenticated owner)
+  // Live Portfolio Content State
+  const { content, saveContent, uploadImage, isSaving: isContentSaving } = usePortfolioContent();
+  const [editableInfo, setEditableInfo] = useState(content.info);
+  const [editableProjects, setEditableProjects] = useState(content.projects);
+  const [editableServices, setEditableServices] = useState(content.services);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+
+  // Synchronize local editable form state when live content updates
+  useEffect(() => {
+    if (content?.info) setEditableInfo(content.info);
+    if (content?.projects) setEditableProjects(content.projects);
+    if (content?.services) setEditableServices(content.services);
+  }, [content]);
+
+  // Project Edit Modal State
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [isAddingNewProject, setIsAddingNewProject] = useState(false);
+
+  // Hidden File Input for Image Uploads
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [currentUploadTarget, setCurrentUploadTarget] = useState<{
+    type: 'heroPortrait' | 'brandVisual' | 'mockupVisual' | 'project';
+    id?: string;
+  } | null>(null);
+  const [uploadToast, setUploadToast] = useState('');
+
+  // Owner Private Vault State
   const [ownerVaultInfo, setOwnerVaultInfo] = useState<{
     email?: string;
     username?: string;
     name?: string;
     currentPassword?: string;
     lastChanged?: string;
-    encryption?: string;
   } | null>(null);
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
-  const [autoHideTimer, setAutoHideTimer] = useState(0);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [newDirectPassword, setNewDirectPassword] = useState('');
+  const [passwordChangeStatus, setPasswordChangeStatus] = useState<{ success?: string; error?: string }>({});
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Live time ticker
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Website Portrait & Profile Picture
-  const { photo: adminPhoto, choosePhotoFile: adminChoosePhoto, resetPhoto: adminResetPhoto, isCustom: isCustomPhoto, isSaving: isPhotoSaving } = usePortfolioPhoto();
-  const adminPhotoInputRef = React.useRef<HTMLInputElement>(null);
-  const [photoSaveSuccess, setPhotoSaveSuccess] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Auto-hide timer for revealed owner password
-  useEffect(() => {
-    let interval: any = null;
-    if (showOwnerPassword && autoHideTimer > 0) {
-      interval = setInterval(() => {
-        setAutoHideTimer((prev) => {
-          if (prev <= 1) {
-            setShowOwnerPassword(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [showOwnerPassword, autoHideTimer]);
-
-  const toggleShowOwnerPassword = () => {
-    if (!showOwnerPassword) {
-      setShowOwnerPassword(true);
-      setAutoHideTimer(15);
-    } else {
-      setShowOwnerPassword(false);
-      setAutoHideTimer(0);
-    }
-  };
-
-  const handleCopyPassword = () => {
-    const pwd = ownerVaultInfo?.currentPassword || '';
-    if (!pwd) return;
-    navigator.clipboard.writeText(pwd);
-    setCopiedPassword(true);
-    setTimeout(() => setCopiedPassword(false), 2000);
-  };
 
   // Fetch all initial data
   const loadData = async (quiet: boolean = false) => {
@@ -169,7 +146,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData.stats);
-        setServiceBreakdown(statsData.serviceBreakdown || {});
         if (statsData.recentLogs) setSystemLogs(statsData.recentLogs);
       }
 
@@ -180,30 +156,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setAppointments(aptsData.appointments || []);
       }
 
-      // 3. Fetch customers
-      const custRes = await authFetch('/api/admin/customers');
-      if (custRes.ok) {
-        const custData = await custRes.json();
-        setCustomers(custData.customers || []);
-      }
-
-      // 4. Fetch services
-      const servRes = await authFetch('/api/admin/services');
-      if (servRes.ok) {
-        const servData = await servRes.json();
-        setServices(servData.services || []);
-      }
-
-      // 5. Fetch private vault credentials (owner-only)
+      // 3. Fetch Owner Vault Credentials
       const vaultRes = await authFetch('/api/admin/vault-credentials');
       if (vaultRes.ok) {
         const vaultData = await vaultRes.json();
-        if (vaultData.success) {
-          setOwnerVaultInfo(vaultData);
-        }
+        setOwnerVaultInfo(vaultData);
       }
     } catch (err) {
-      console.error('Error loading admin data', err);
+      console.error('Failed to load admin data:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -214,111 +174,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     loadData();
   }, []);
 
-  // Handle appointment status update
-  const handleUpdateStatus = async (
-    id: string,
-    newStatus: Appointment['status'],
-    notes?: string
-  ) => {
-    try {
-      const res = await authFetch(`/api/admin/appointments/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: newStatus, notes, isNewRequest: false })
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setAppointments((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, ...updated.appointment } : a))
-        );
-        if (selectedAppointment && selectedAppointment.id === id) {
-          setSelectedAppointment((prev) => (prev ? { ...prev, ...updated.appointment } : null));
-        }
-        // Refresh stats
-        loadData(true);
-      }
-    } catch (err) {
-      console.error('Update status failed', err);
-    }
-  };
-
-  // Handle appointment deletion
-  const handleDeleteAppointment = async (id: string) => {
-    try {
-      const res = await authFetch(`/api/admin/appointments/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        setAppointments((prev) => prev.filter((a) => a.id !== id));
-        setSelectedAppointment(null);
-        loadData(true);
-      }
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
-  };
-
-  // Handle manual appointment creation
-  const handleCreateAppointment = async (data: Partial<Appointment>) => {
-    const res = await authFetch('/api/admin/appointments', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      throw new Error('Failed to create appointment');
-    }
-    const created = await res.json();
-    setAppointments((prev) => [created.appointment, ...prev]);
-    loadData(true);
-  };
-
-  // Filtered Appointments
-  const filteredAppointments = useMemo(() => {
-    return appointments.filter((apt) => {
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = apt.name.toLowerCase().includes(q);
-        const matchesPhone = apt.phone.toLowerCase().includes(q);
-        const matchesEmail = (apt.email || '').toLowerCase().includes(q);
-        const matchesService = apt.service.toLowerCase().includes(q);
-        const matchesMessage = apt.message.toLowerCase().includes(q);
-        if (!matchesName && !matchesPhone && !matchesEmail && !matchesService && !matchesMessage) {
-          return false;
-        }
-      }
-
-      // Service filter
-      if (selectedServiceFilter !== 'All Services' && apt.service !== selectedServiceFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (selectedStatusFilter !== 'all' && apt.status !== selectedStatusFilter) {
-        return false;
-      }
-
-      // Date filter
-      if (selectedDateFilter !== 'all') {
-        const now = new Date();
-        const aptDate = new Date(apt.date);
-        if (selectedDateFilter === 'today') {
-          const todayStr = now.toISOString().split('T')[0];
-          if (apt.date !== todayStr) return false;
-        } else if (selectedDateFilter === 'week') {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
-          if (aptDate < weekAgo) return false;
-        } else if (selectedDateFilter === 'month') {
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
-          if (aptDate < monthAgo) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [appointments, searchQuery, selectedServiceFilter, selectedDateFilter, selectedStatusFilter]);
-
-  // Handle Logout
   const handleLogout = async () => {
     try {
       await authFetch('/api/admin/logout', { method: 'POST' });
@@ -330,24 +185,195 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Content Save Handler
+  const handleSaveAllContent = async () => {
+    const updated: PortfolioContentData = {
+      ...content,
+      info: editableInfo,
+      projects: editableProjects,
+      services: editableServices
+    };
+    const res = await saveContent(updated);
+    if (res.success) {
+      setSaveSuccessMsg('Website content & information saved successfully!');
+      setTimeout(() => setSaveSuccessMsg(''), 4000);
+    } else {
+      alert('Error saving content: ' + res.error);
+    }
+  };
+
+  // Image Upload Trigger
+  const handleTriggerUpload = (type: 'heroPortrait' | 'brandVisual' | 'mockupVisual' | 'project', id?: string) => {
+    setCurrentUploadTarget({ type, id });
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+      imageInputRef.current.click();
+    }
+  };
+
+  const handleImageFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUploadTarget) return;
+
+    setUploadToast('Uploading image...');
+    const res = await uploadImage(file, currentUploadTarget.type, currentUploadTarget.id);
+    if (res.success && res.url) {
+      setUploadToast('Image updated successfully!');
+      setTimeout(() => setUploadToast(''), 3500);
+
+      // Update local state preview
+      if (currentUploadTarget.type === 'heroPortrait') {
+        setEditableInfo((prev) => ({
+          ...prev,
+          images: { ...prev.images, heroPortrait: res.url! }
+        }));
+      } else if (currentUploadTarget.type === 'brandVisual') {
+        setEditableInfo((prev) => ({
+          ...prev,
+          images: { ...prev.images, brandVisual: res.url! }
+        }));
+      } else if (currentUploadTarget.type === 'mockupVisual') {
+        setEditableInfo((prev) => ({
+          ...prev,
+          images: { ...prev.images, mockupVisual: res.url! }
+        }));
+      } else if (currentUploadTarget.type === 'project' && currentUploadTarget.id) {
+        setEditableProjects((prev) =>
+          prev.map((p) => (p.id === currentUploadTarget.id ? { ...p, image: res.url! } : p))
+        );
+      }
+    } else {
+      setUploadToast('Failed to upload image: ' + (res.error || 'Unknown error'));
+      setTimeout(() => setUploadToast(''), 4000);
+    }
+  };
+
+  // Direct Password Update Handler
+  const handleDirectPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeStatus({});
+
+    if (!newDirectPassword || newDirectPassword.length < 2) {
+      setPasswordChangeStatus({ error: 'Please enter a valid password (at least 2 characters).' });
+      return;
+    }
+
+    try {
+      setIsUpdatingPassword(true);
+      const res = await authFetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: newDirectPassword })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPasswordChangeStatus({ error: data.error || 'Failed to update password.' });
+        return;
+      }
+
+      setPasswordChangeStatus({ success: 'New password updated successfully! Only you can now access this dashboard.' });
+      setOwnerVaultInfo((prev) => prev ? { ...prev, currentPassword: newDirectPassword } : null);
+      setNewDirectPassword('');
+      loadData(true);
+    } catch (err: any) {
+      setPasswordChangeStatus({ error: err.message || 'Connection error while updating password.' });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  // Copy Password
+  const handleCopyPassword = () => {
+    const pwd = ownerVaultInfo?.currentPassword || '';
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
+  // Appointment Status Updates
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      const res = await authFetch(`/api/admin/appointments/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, status: newStatus as any } : a))
+        );
+        loadData(true);
+      }
+    } catch (err) {
+      console.error('Error updating status:', err);
+    }
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      const res = await authFetch(`/api/admin/appointments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAppointments((prev) => prev.filter((a) => a.id !== id));
+        setSelectedAppointment(null);
+        loadData(true);
+      }
+    } catch (err) {
+      console.error('Error deleting appointment:', err);
+    }
+  };
+
+  const handleCreateAppointment = async (newApt: any) => {
+    try {
+      const res = await authFetch('/api/admin/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newApt)
+      });
+      if (res.ok) {
+        setIsNewAppointmentModalOpen(false);
+        loadData(true);
+      }
+    } catch (err) {
+      console.error('Error creating appointment:', err);
+    }
+  };
+
+  // Filtered Appointments
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((apt) => {
+      const matchesSearch =
+        apt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        apt.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        apt.service.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = selectedStatusFilter === 'all' || apt.status === selectedStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [appointments, searchQuery, selectedStatusFilter]);
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    {
-      id: 'appointments',
-      label: 'Appointments',
-      icon: Calendar,
-      badge: stats.newRequests > 0 ? stats.newRequests : undefined
-    },
-    { id: 'customers', label: 'Customers', icon: Users, count: customers.length },
-    { id: 'services', label: 'Services', icon: Briefcase },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'security', label: 'Security', icon: ShieldCheck }
+    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+    { id: 'content', label: 'Website & Bio', icon: Globe },
+    { id: 'images', label: 'All Images', icon: ImageIcon },
+    { id: 'projects', label: 'Projects Showcase', icon: FolderKanban, count: editableProjects.length },
+    { id: 'services', label: 'Services & Pricing', icon: Briefcase, count: editableServices.length },
+    { id: 'appointments', label: 'Appointments & Leads', icon: Calendar, badge: stats.pending > 0 ? stats.pending : undefined },
+    { id: 'security', label: 'Owner Password', icon: ShieldCheck }
   ];
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black">
-      {/* Modals */}
+      {/* Hidden File Input for Universal Image Upload */}
+      <input
+        type="file"
+        ref={imageInputRef}
+        onChange={handleImageFileSelected}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Global Modals */}
       <AnimatePresence>
         {selectedAppointment && (
           <AppointmentDetailsModal
@@ -377,28 +403,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Forced Password Change Notice Banner if applicable */}
-      {mustChangePassword && (
-        <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-amber-800 text-amber-950 px-4 py-2.5 flex items-center justify-between text-xs font-semibold border-b border-amber-500/50 shadow-lg">
-          <div className="flex items-center gap-2 text-white">
-            <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0" />
-            <span>
-              <strong>Security Protocol:</strong> You are logged in with the default setup password. Please configure a permanent private password for maximum account safety.
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsPasswordModalOpen(true)}
-            className="px-3 py-1 rounded-lg bg-slate-950 text-amber-300 hover:text-white hover:bg-black text-[11px] font-mono font-bold transition-colors cursor-pointer"
-          >
-            Update Password Now
-          </button>
-        </div>
-      )}
-
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-[#060c1d]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        {/* Brand & Owner Title */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -410,19 +416,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm sm:text-base font-heading font-black tracking-tight text-white">
-                NEW NEPAL DIGITAL
+                {editableInfo.brand || 'NEW NEPAL DIGITAL'}
               </span>
               <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 text-[10px] font-mono font-bold uppercase tracking-wider">
-                Owner Dashboard
+                Private Owner Vault
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono hidden sm:block">
-              Aadrash Kumar Sah • Creative Technology Studio
+              {editableInfo.name} • Master Control Dashboard
             </p>
           </div>
         </div>
 
-        {/* Top Right Header Controls */}
         <div className="flex items-center gap-3">
           {/* Live Clock */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs font-mono text-slate-300">
@@ -436,7 +441,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <button
             onClick={() => loadData(true)}
             disabled={isRefreshing}
-            title="Refresh Dashboard Data"
+            title="Refresh Data"
             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
@@ -445,28 +450,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* View Website */}
           <button
             onClick={onViewWebsite}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
-            <span>Live Portfolio</span>
+            <span>View Website</span>
             <ExternalLink className="w-3 h-3 text-cyan-400" />
           </button>
 
-          {/* Owner Profile Dropdown / Card */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+          {/* Owner Logout */}
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20">
               AS
             </div>
-            <div className="hidden xl:block text-left">
-              <span className="text-xs font-semibold text-white block leading-none">
-                Aadrash Sah
-              </span>
-              <span className="text-[10px] text-cyan-400 font-mono">Owner / Admin</span>
-            </div>
-
             <button
               onClick={handleLogout}
               title="Logout from Owner Dashboard"
-              className="p-2 rounded-xl bg-slate-900/90 hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer ml-1"
+              className="p-2 rounded-xl bg-slate-900/90 hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -474,18 +472,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </header>
 
-      {/* Main Container with Sidebar + Content */}
+      {/* Main Layout Container */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar (Desktop + Mobile Drawer) */}
+        {/* Sidebar */}
         <aside
           className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-[#050b18] border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-300 lg:translate-x-0 ${
             isMobileMenuOpen ? 'translate-x-0 pt-16 lg:pt-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
-          {/* Navigation Items */}
           <div className="p-4 space-y-1.5 overflow-y-auto">
             <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">
-              Navigation Menu
+              Admin Controls
             </div>
 
             {navItems.map((item) => {
@@ -523,1005 +520,984 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             })}
           </div>
 
-          {/* Sidebar Footer Info */}
-          <div className="p-4 border-t border-slate-800/80 bg-slate-950/50 space-y-3">
+          {/* Sidebar Footer Security Status */}
+          <div className="p-4 border-t border-slate-800/80 bg-slate-950/50 space-y-2">
             <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 text-xs">
               <div className="flex items-center gap-1.5 text-cyan-400 font-mono font-semibold text-[11px]">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Owner Security Vault</span>
+                <span>Protected Vault</span>
               </div>
-              <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                Private Server Database • HMAC Bearer Auth
+              <p className="text-[10px] text-slate-400 mt-1">
+                Hidden from public visitors. Only owner can enter.
               </p>
             </div>
-
-            <button
-              onClick={handleLogout}
-              className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 text-xs font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
           </div>
         </aside>
 
-        {/* Overlay backdrop for mobile menu */}
-        {isMobileMenuOpen && (
-          <div
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 z-20 bg-black/60 backdrop-blur-xs lg:hidden"
-          />
-        )}
-
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#030712]">
+          {/* Toast Notification */}
+          {(saveSuccessMsg || uploadToast) && (
+            <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-950 border border-emerald-500/60 text-emerald-200 text-xs font-mono shadow-2xl animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{saveSuccessMsg || uploadToast}</span>
+            </div>
+          )}
+
           {/* TAB 1: OVERVIEW DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* Header Title + Actions */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                    Studio Overview
-                  </h1>
-                  <p className="text-xs font-mono text-slate-400 mt-1">
-                    Real-time metrics, appointment requests, and operational pipeline
-                  </p>
+            <div className="space-y-8 max-w-6xl">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
+                  Studio Overview & Analytics
+                </h1>
+                <p className="text-xs font-mono text-slate-400 mt-1">
+                  Welcome, {editableInfo.name}! Control your entire digital presence from this private vault.
+                </p>
+              </div>
+
+              {/* Quick Action Tiles */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div
+                  onClick={() => setActiveTab('content')}
+                  className="p-5 rounded-2xl bg-[#070e20] border border-cyan-500/25 hover:border-cyan-500/50 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                >
+                  <Globe className="w-6 h-6 text-cyan-400 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-heading font-bold text-white text-sm">Edit Website Content</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">Change name, title, bio, phones, WhatsApp</p>
                 </div>
 
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={() => setIsNewAppointmentModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>New Appointment</span>
-                  </button>
+                <div
+                  onClick={() => setActiveTab('images')}
+                  className="p-5 rounded-2xl bg-[#070e20] border border-blue-500/25 hover:border-blue-500/50 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                >
+                  <ImageIcon className="w-6 h-6 text-blue-400 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-heading font-bold text-white text-sm">Change All Images</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">Upload real photo, brand visuals, projects</p>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab('projects')}
+                  className="p-5 rounded-2xl bg-[#070e20] border border-purple-500/25 hover:border-purple-500/50 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                >
+                  <FolderKanban className="w-6 h-6 text-purple-400 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-heading font-bold text-white text-sm">Manage Projects ({editableProjects.length})</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">Add, edit, or delete portfolio showcases</p>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab('security')}
+                  className="p-5 rounded-2xl bg-[#070e20] border border-emerald-500/25 hover:border-emerald-500/50 cursor-pointer transition-all hover:-translate-y-0.5 group"
+                >
+                  <KeyRound className="w-6 h-6 text-emerald-400 mb-3 group-hover:scale-110 transition-transform" />
+                  <h3 className="font-heading font-bold text-white text-sm">Owner Password</h3>
+                  <p className="text-xs text-slate-400 mt-1 font-mono">View or change your private password</p>
                 </div>
               </div>
 
-              {/* 6 Key Overview Metric Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                {/* Total */}
-                <div className="rounded-2xl p-4 bg-slate-900/60 border border-slate-800 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-                  <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                    Total Appointments
-                  </span>
-                  <div className="text-2xl font-heading font-black text-white">
-                    {stats.total}
-                  </div>
-                  <div className="mt-2 text-[10px] text-cyan-400 font-mono flex items-center gap-1">
-                    <Activity className="w-3 h-3" />
-                    <span>All bookings</span>
-                  </div>
+              {/* Appointment Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="text-2xl font-black text-white font-heading">{stats.total}</div>
+                  <div className="text-xs text-slate-400 font-mono mt-1">Total Client Inquiries</div>
                 </div>
-
-                {/* Pending */}
-                <div className="rounded-2xl p-4 bg-slate-900/60 border border-slate-800 relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                  <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                    Pending
-                  </span>
-                  <div className="text-2xl font-heading font-black text-amber-400">
-                    {stats.pending}
-                  </div>
-                  <div className="mt-2 text-[10px] text-amber-400/80 font-mono flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>Needs review</span>
-                  </div>
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-amber-500/30">
+                  <div className="text-2xl font-black text-amber-400 font-heading">{stats.pending}</div>
+                  <div className="text-xs text-slate-400 font-mono mt-1">Pending Requests</div>
                 </div>
-
-                {/* Confirmed */}
-                <div className="rounded-2xl p-4 bg-slate-900/60 border border-slate-800 relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-                  <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                    Confirmed
-                  </span>
-                  <div className="text-2xl font-heading font-black text-emerald-400">
-                    {stats.confirmed}
-                  </div>
-                  <div className="mt-2 text-[10px] text-emerald-400/80 font-mono flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Scheduled sessions</span>
-                  </div>
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-emerald-500/30">
+                  <div className="text-2xl font-black text-emerald-400 font-heading">{stats.confirmed}</div>
+                  <div className="text-xs text-slate-400 font-mono mt-1">Confirmed Bookings</div>
                 </div>
-
-                {/* Completed */}
-                <div className="rounded-2xl p-4 bg-slate-900/60 border border-slate-800 relative overflow-hidden group hover:border-blue-500/40 transition-all">
-                  <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                    Completed
-                  </span>
-                  <div className="text-2xl font-heading font-black text-blue-400">
-                    {stats.completed}
-                  </div>
-                  <div className="mt-2 text-[10px] text-blue-400/80 font-mono flex items-center gap-1">
-                    <CheckCheck className="w-3 h-3" />
-                    <span>Delivered work</span>
-                  </div>
-                </div>
-
-                {/* Cancelled */}
-                <div className="rounded-2xl p-4 bg-slate-900/60 border border-slate-800 relative overflow-hidden group hover:border-rose-500/40 transition-all">
-                  <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                    Cancelled
-                  </span>
-                  <div className="text-2xl font-heading font-black text-rose-400">
-                    {stats.cancelled}
-                  </div>
-                  <div className="mt-2 text-[10px] text-rose-400/80 font-mono flex items-center gap-1">
-                    <XCircle className="w-3 h-3" />
-                    <span>Voided</span>
-                  </div>
-                </div>
-
-                {/* New Requests */}
-                <div className="rounded-2xl p-4 bg-cyan-950/30 border border-cyan-500/40 relative overflow-hidden group">
-                  <span className="text-[11px] font-mono text-cyan-300 block mb-1">
-                    New Requests
-                  </span>
-                  <div className="text-2xl font-heading font-black text-cyan-300">
-                    {stats.newRequests}
-                  </div>
-                  <div className="mt-2 text-[10px] text-cyan-400 font-mono flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
-                    <span>Action required</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Analytics & Distribution Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Services Demand Breakdown */}
-                <div className="lg:col-span-2 rounded-2xl p-5 bg-slate-900/60 border border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-cyan-400" />
-                      <span>Service Demand & Inquiries</span>
-                    </h2>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      Distribution by category
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {Object.keys(serviceBreakdown).length === 0 ? (
-                      <div className="text-xs text-slate-500 font-mono py-4 text-center">
-                        No service appointment records yet.
-                      </div>
-                    ) : (
-                      Object.entries(serviceBreakdown).map(([serviceName, count]) => {
-                        const numCount = Number(count) || 0;
-                        const pct = stats.total > 0 ? Math.round((numCount / stats.total) * 100) : 0;
-                        return (
-                          <div key={serviceName} className="space-y-1">
-                            <div className="flex justify-between text-xs font-mono">
-                              <span className="text-slate-200">{serviceName}</span>
-                              <span className="text-cyan-400 font-bold">
-                                {numCount} ({pct}%)
-                              </span>
-                            </div>
-                            <div className="h-2 w-full bg-slate-850 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-700"
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Quick Studio Profile & Contact Info */}
-                <div className="rounded-2xl p-5 bg-slate-900/60 border border-slate-800 space-y-4">
-                  <h2 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-cyan-400" />
-                    <span>Studio Information</span>
-                  </h2>
-
-                  <div className="space-y-2.5 text-xs">
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-400 block">Owner & Founder</span>
-                      <span className="font-bold text-white text-sm">Aadrash Kumar Sah</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-400 block">Agency Brand</span>
-                      <span className="font-bold text-cyan-300">NEW NEPAL DIGITAL</span>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1">
-                      <span className="text-[10px] font-mono text-slate-400 block">Direct Contact Numbers</span>
-                      <div className="font-mono text-white text-xs">+977 9704135338</div>
-                      <div className="font-mono text-white text-xs">+977 9717126332</div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80">
-                      <span className="text-[10px] font-mono text-slate-400 block">Operation Hours</span>
-                      <span className="text-emerald-400 font-mono font-bold text-xs flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>24 Hours Open (Always Active)</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Appointments Preview */}
-              <div className="rounded-2xl p-5 bg-slate-900/60 border border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-cyan-400" />
-                      <span>Latest Appointment Requests</span>
-                    </h2>
-                    <p className="text-[11px] font-mono text-slate-400">
-                      Recent bookings needing owner confirmation
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setActiveTab('appointments')}
-                    className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>View All Appointments</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px]">
-                        <th className="pb-3 font-medium">Customer</th>
-                        <th className="pb-3 font-medium">Service</th>
-                        <th className="pb-3 font-medium">Date & Time</th>
-                        <th className="pb-3 font-medium">Type</th>
-                        <th className="pb-3 font-medium">Status</th>
-                        <th className="pb-3 font-medium text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-850">
-                      {appointments.slice(0, 5).map((apt) => (
-                        <tr key={apt.id} className="hover:bg-slate-850/40 transition-colors">
-                          <td className="py-3">
-                            <div className="font-semibold text-white">{apt.name}</div>
-                            <div className="text-[11px] font-mono text-slate-400">{apt.phone}</div>
-                          </td>
-                          <td className="py-3 text-cyan-300 font-medium">{apt.service}</td>
-                          <td className="py-3 font-mono text-slate-300">
-                            <div>{apt.date}</div>
-                            <div className="text-[10px] text-slate-500">{apt.time}</div>
-                          </td>
-                          <td className="py-3 text-slate-300 font-mono text-[11px]">
-                            {apt.appointmentType}
-                          </td>
-                          <td className="py-3">
-                            <span
-                              className={`text-[10px] font-mono px-2 py-0.5 rounded-full uppercase font-bold ${
-                                apt.status === 'confirmed'
-                                  ? 'bg-emerald-950 border border-emerald-500/40 text-emerald-400'
-                                  : apt.status === 'completed'
-                                  ? 'bg-blue-950 border border-blue-500/40 text-blue-400'
-                                  : apt.status === 'cancelled'
-                                  ? 'bg-rose-950 border border-rose-500/40 text-rose-400'
-                                  : 'bg-amber-950 border border-amber-500/40 text-amber-400'
-                              }`}
-                            >
-                              {apt.status}
-                            </span>
-                          </td>
-                          <td className="py-3 text-right">
-                            <button
-                              onClick={() => setSelectedAppointment(apt)}
-                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 font-mono text-[11px] transition-colors cursor-pointer"
-                            >
-                              Details
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-cyan-500/30">
+                  <div className="text-2xl font-black text-cyan-400 font-heading">{stats.completed}</div>
+                  <div className="text-xs text-slate-400 font-mono mt-1">Delivered Projects</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: APPOINTMENT MANAGEMENT */}
-          {activeTab === 'appointments' && (
-            <div className="space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* TAB 2: EDIT WEBSITE CONTENT & BIO */}
+          {activeTab === 'content' && (
+            <div className="space-y-6 max-w-5xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                 <div>
                   <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                    Appointment Management
+                    Edit Website Content & Bio
                   </h1>
                   <p className="text-xs font-mono text-slate-400 mt-1">
-                    Search, filter, confirm, complete, and schedule client appointments
+                    Change any text, name, tagline, or contact detail across the website.
                   </p>
                 </div>
-
                 <button
-                  onClick={() => setIsNewAppointmentModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-bold text-xs font-mono flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
+                  type="button"
+                  onClick={handleSaveAllContent}
+                  disabled={isContentSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold font-mono text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>New Appointment</span>
+                  <Save className="w-4 h-4" />
+                  <span>{isContentSaving ? 'Saving Changes...' : 'Save Website Content'}</span>
                 </button>
               </div>
 
-              {/* Filters & Search Toolbar */}
-              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Basic Personal & Brand Info */}
+                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                  <h3 className="text-sm font-heading font-bold text-cyan-400 uppercase tracking-wider font-mono">
+                    1. Identity & Titles
+                  </h3>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Full Name</label>
                     <input
                       type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search customer, phone, email..."
-                      className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                      value={editableInfo.name}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, name: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
                     />
                   </div>
 
-                  {/* Service Filter */}
                   <div>
-                    <select
-                      value={selectedServiceFilter}
-                      onChange={(e) => setSelectedServiceFilter(e.target.value)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
-                    >
-                      <option value="All Services">All Services</option>
-                      <option value="Digital Website Design">Digital Website Design</option>
-                      <option value="Branding & Creative Services">Branding & Creative Services</option>
-                      <option value="Video Editing">Video Editing</option>
-                      <option value="Animation & Motion Graphics">Animation & Motion Graphics</option>
-                      <option value="Social Media Design">Social Media Design</option>
-                      <option value="Digital Menu / QR Menu Design">Digital Menu / QR Menu Design</option>
-                    </select>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Founder Title</label>
+                    <input
+                      type="text"
+                      value={editableInfo.title}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, title: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
                   </div>
 
-                  {/* Date Filter */}
                   <div>
-                    <select
-                      value={selectedDateFilter}
-                      onChange={(e) => setSelectedDateFilter(e.target.value)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
-                    >
-                      <option value="all">All Dates</option>
-                      <option value="today">Today</option>
-                      <option value="week">Past 7 Days</option>
-                      <option value="month">Past 30 Days</option>
-                    </select>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Brand Name</label>
+                    <input
+                      type="text"
+                      value={editableInfo.brand}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, brand: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
                   </div>
 
-                  {/* Status Filter */}
                   <div>
-                    <select
-                      value={selectedStatusFilter}
-                      onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
-                    >
-                      <option value="all">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Brand Tagline</label>
+                    <input
+                      type="text"
+                      value={editableInfo.tagline}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, tagline: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Hero Heading</label>
+                    <input
+                      type="text"
+                      value={editableInfo.heroHeading}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, heroHeading: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">
+                      Animated Cycling Titles (separated by commas)
+                    </label>
+                    <input
+                      type="text"
+                      value={editableInfo.animatedTitles.join(', ')}
+                      onChange={(e) =>
+                        setEditableInfo({
+                          ...editableInfo,
+                          animatedTitles: e.target.value.split(',').map((s) => s.trim())
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
                   </div>
                 </div>
 
-                {/* Filter Summary */}
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1">
-                  <span>
-                    Showing <strong>{filteredAppointments.length}</strong> of{' '}
-                    <strong>{appointments.length}</strong> appointments
-                  </span>
-                  {(searchQuery ||
-                    selectedServiceFilter !== 'All Services' ||
-                    selectedDateFilter !== 'all' ||
-                    selectedStatusFilter !== 'all') && (
-                    <button
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSelectedServiceFilter('All Services');
-                        setSelectedDateFilter('all');
-                        setSelectedStatusFilter('all');
+                {/* Contact & Availability Settings */}
+                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                  <h3 className="text-sm font-heading font-bold text-cyan-400 uppercase tracking-wider font-mono">
+                    2. Contact Numbers & Socials
+                  </h3>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Primary Phone Number</label>
+                    <input
+                      type="text"
+                      value={editableInfo.contactNumbers[0] || ''}
+                      onChange={(e) => {
+                        const copy = [...editableInfo.contactNumbers];
+                        copy[0] = e.target.value;
+                        setEditableInfo({ ...editableInfo, contactNumbers: copy });
                       }}
-                      className="text-cyan-400 hover:underline cursor-pointer"
-                    >
-                      Reset Filters
-                    </button>
-                  )}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Secondary Phone Number</label>
+                    <input
+                      type="text"
+                      value={editableInfo.contactNumbers[1] || ''}
+                      onChange={(e) => {
+                        const copy = [...editableInfo.contactNumbers];
+                        copy[1] = e.target.value;
+                        setEditableInfo({ ...editableInfo, contactNumbers: copy });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">WhatsApp Number (Nepal)</label>
+                    <input
+                      type="text"
+                      value={editableInfo.whatsappNumber}
+                      onChange={(e) =>
+                        setEditableInfo({
+                          ...editableInfo,
+                          whatsappNumber: e.target.value,
+                          whatsappUrl: `https://wa.me/977${e.target.value}`
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Instagram Handle</label>
+                    <input
+                      type="text"
+                      value={editableInfo.instagramHandle}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, instagramHandle: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Instagram Profile URL</label>
+                    <input
+                      type="text"
+                      value={editableInfo.instagramUrl}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, instagramUrl: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Working Hours</label>
+                    <input
+                      type="text"
+                      value={editableInfo.workingHours}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, workingHours: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Appointments List Table */}
-              <div className="rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-mono text-[11px]">
-                        <th className="p-4 font-medium">Customer Information</th>
-                        <th className="p-4 font-medium">Service Requested</th>
-                        <th className="p-4 font-medium">Scheduled Date & Time</th>
-                        <th className="p-4 font-medium">Appointment Type</th>
-                        <th className="p-4 font-medium">Status</th>
-                        <th className="p-4 font-medium text-right">Quick Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-850">
-                      {filteredAppointments.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="p-8 text-center text-slate-500 font-mono">
-                            No appointments matched the current criteria.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredAppointments.map((apt) => (
-                          <tr
-                            key={apt.id}
-                            className="hover:bg-slate-850/40 transition-colors group cursor-pointer"
-                            onClick={() => setSelectedAppointment(apt)}
-                          >
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-slate-800 text-cyan-400 flex items-center justify-center font-bold text-xs">
-                                  {apt.name.charAt(0)}
-                                </div>
-                                <div>
-                                  <div className="font-semibold text-white group-hover:text-cyan-300 transition-colors">
-                                    {apt.name}
-                                  </div>
-                                  <div className="text-[11px] font-mono text-slate-400">
-                                    {apt.phone}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
+                {/* Hero & About Descriptions */}
+                <div className="md:col-span-2 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                  <h3 className="text-sm font-heading font-bold text-cyan-400 uppercase tracking-wider font-mono">
+                    3. Bio & Narrative Text
+                  </h3>
 
-                            <td className="p-4">
-                              <span className="font-medium text-cyan-300 block">{apt.service}</span>
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                Sub: {new Date(apt.createdAt).toLocaleDateString()}
-                              </span>
-                            </td>
-
-                            <td className="p-4 font-mono text-slate-300">
-                              <div className="font-semibold">{apt.date}</div>
-                              <div className="text-[10px] text-slate-400">{apt.time}</div>
-                            </td>
-
-                            <td className="p-4 font-mono text-slate-300 text-[11px]">
-                              {apt.appointmentType}
-                            </td>
-
-                            <td className="p-4">
-                              <span
-                                className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full uppercase font-bold ${
-                                  apt.status === 'confirmed'
-                                    ? 'bg-emerald-950 border border-emerald-500/40 text-emerald-400'
-                                    : apt.status === 'completed'
-                                    ? 'bg-blue-950 border border-blue-500/40 text-blue-400'
-                                    : apt.status === 'cancelled'
-                                    ? 'bg-rose-950 border border-rose-500/40 text-rose-400'
-                                    : 'bg-amber-950 border border-amber-500/40 text-amber-400'
-                                }`}
-                              >
-                                {apt.status}
-                              </span>
-                            </td>
-
-                            <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => setSelectedAppointment(apt)}
-                                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono text-[11px] transition-colors cursor-pointer"
-                                >
-                                  View
-                                </button>
-                                {apt.status === 'pending' && (
-                                  <button
-                                    onClick={() => handleUpdateStatus(apt.id, 'confirmed')}
-                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[11px] font-bold transition-colors cursor-pointer"
-                                  >
-                                    Confirm
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: CUSTOMERS CRM */}
-          {activeTab === 'customers' && (
-            <div className="space-y-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                  Customer Directory & CRM
-                </h1>
-                <p className="text-xs font-mono text-slate-400 mt-1">
-                  Client contact records, booking history, and direct outreach channels
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {customers.length === 0 ? (
-                  <div className="col-span-full p-8 text-center text-slate-500 font-mono">
-                    No customer profiles recorded yet.
-                  </div>
-                ) : (
-                  customers.map((c) => {
-                    const cleanPhone = c.phone.replace(/[^0-9]/g, '');
-                    const waUrl = `https://wa.me/${cleanPhone}`;
-                    return (
-                      <div
-                        key={c.id}
-                        className="rounded-2xl p-5 bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 transition-all space-y-4"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 text-slate-950 font-bold flex items-center justify-center text-sm">
-                              {c.name.charAt(0)}
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-white text-sm">{c.name}</h3>
-                              <p className="text-[11px] font-mono text-slate-400">{c.phone}</p>
-                            </div>
-                          </div>
-
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300">
-                            {c.totalAppointments} {c.totalAppointments === 1 ? 'Booking' : 'Bookings'}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 text-xs text-slate-300">
-                          <div className="flex justify-between font-mono text-[11px]">
-                            <span className="text-slate-500">Email:</span>
-                            <span className="text-slate-300">{c.email}</span>
-                          </div>
-                          <div className="flex justify-between font-mono text-[11px]">
-                            <span className="text-slate-500">Latest Service:</span>
-                            <span className="text-cyan-400 font-semibold">{c.latestService}</span>
-                          </div>
-                          <div className="flex justify-between font-mono text-[11px]">
-                            <span className="text-slate-500">Last Active:</span>
-                            <span className="text-slate-300">{c.latestDate}</span>
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2">
-                          <a
-                            href={`tel:${c.phone}`}
-                            className="flex-1 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <Phone className="w-3 h-3 text-cyan-400" />
-                            <span>Call</span>
-                          </a>
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 py-1.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <MessageSquare className="w-3 h-3 text-emerald-400" />
-                            <span>WhatsApp</span>
-                          </a>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SERVICES CATALOG */}
-          {activeTab === 'services' && (
-            <div className="space-y-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                  Studio Creative Services
-                </h1>
-                <p className="text-xs font-mono text-slate-400 mt-1">
-                  Active offerings available for client bookings at NEW NEPAL DIGITAL
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services.map((srv) => (
-                  <div
-                    key={srv.id}
-                    className="rounded-2xl p-5 bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 transition-all space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400">
-                        {srv.category}
-                      </span>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                        ● {srv.status}
-                      </span>
-                    </div>
-
-                    <h3 className="font-heading font-bold text-white text-base">{srv.name}</h3>
-
-                    <div className="pt-2 border-t border-slate-850 flex items-center justify-between text-xs font-mono">
-                      <div>
-                        <span className="text-slate-500 block text-[10px]">Estimated Price</span>
-                        <span className="text-cyan-300 font-bold">{srv.priceEstimate}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-slate-500 block text-[10px]">Duration</span>
-                        <span className="text-slate-300">{srv.duration}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: MESSAGES & INQUIRIES */}
-          {activeTab === 'messages' && (
-            <div className="space-y-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                  Inquiries & Messages
-                </h1>
-                <p className="text-xs font-mono text-slate-400 mt-1">
-                  Detailed project scopes and direct contact submissions from clients
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {appointments.map((apt) => (
-                  <div
-                    key={apt.id}
-                    className="rounded-2xl p-5 bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all space-y-3"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">{apt.name}</span>
-                        <span className="text-slate-500">•</span>
-                        <span className="text-cyan-400 font-mono text-xs">{apt.service}</span>
-                      </div>
-                      <span className="text-[11px] font-mono text-slate-400">
-                        {new Date(apt.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-850 text-xs text-slate-200 leading-relaxed font-sans">
-                      {apt.message || 'No specific notes provided.'}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 text-xs font-mono text-slate-400">
-                      <div className="flex items-center gap-3">
-                        <span>Phone: <strong className="text-white">{apt.phone}</strong></span>
-                        {apt.email && <span>Email: <strong className="text-white">{apt.email}</strong></span>}
-                      </div>
-
-                      <button
-                        onClick={() => setSelectedAppointment(apt)}
-                        className="text-cyan-400 hover:text-cyan-300 cursor-pointer"
-                      >
-                        Manage Appointment →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: SETTINGS */}
-          {activeTab === 'settings' && (
-            <div className="space-y-6 max-w-4xl">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                  Studio Settings
-                </h1>
-                <p className="text-xs font-mono text-slate-400 mt-1">
-                  Agency credentials, operational hours, and system preferences
-                </p>
-              </div>
-
-              <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-5">
-                <h3 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-cyan-400" />
-                  <span>NEW NEPAL DIGITAL Identity</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
                   <div>
-                    <label className="text-slate-400 block mb-1">Owner Name</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="Aadrash Kumar Sah"
-                      className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-semibold cursor-not-allowed opacity-80"
+                    <label className="text-xs font-mono text-slate-300 block mb-1">Hero Section Description</label>
+                    <textarea
+                      rows={2}
+                      value={editableInfo.heroDescription}
+                      onChange={(e) => setEditableInfo({ ...editableInfo, heroDescription: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1">Owner Email</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="videographics27@gmail.com"
-                      className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-cyan-300 font-semibold cursor-not-allowed opacity-80"
+                    <label className="text-xs font-mono text-slate-300 block mb-1">About Me - Paragraph 1</label>
+                    <textarea
+                      rows={2}
+                      value={editableInfo.aboutParagraphs[0] || ''}
+                      onChange={(e) => {
+                        const copy = [...editableInfo.aboutParagraphs];
+                        copy[0] = e.target.value;
+                        setEditableInfo({ ...editableInfo, aboutParagraphs: copy });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="text-slate-400 block mb-1">Primary Phone</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="+977 9704135338"
-                      className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white cursor-not-allowed opacity-80"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-400 block mb-1">Secondary Phone</label>
-                    <input
-                      type="text"
-                      disabled
-                      value="+977 9717126332"
-                      className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white cursor-not-allowed opacity-80"
+                    <label className="text-xs font-mono text-slate-300 block mb-1">About Me - Paragraph 2</label>
+                    <textarea
+                      rows={2}
+                      value={editableInfo.aboutParagraphs[1] || ''}
+                      onChange={(e) => {
+                        const copy = [...editableInfo.aboutParagraphs];
+                        copy[1] = e.target.value;
+                        setEditableInfo({ ...editableInfo, aboutParagraphs: copy });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Website Natural Portrait Management */}
-              <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={handleSaveAllContent}
+                  disabled={isContentSaving}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold font-mono text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isContentSaving ? 'Saving Changes...' : 'Save Website Content'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ALL IMAGES MANAGEMENT */}
+          {activeTab === 'images' && (
+            <div className="space-y-8 max-w-5xl">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
+                  All Website Images Management
+                </h1>
+                <p className="text-xs font-mono text-slate-400 mt-1">
+                  Upload or replace any photograph, brand visual, or project picture with real-time preview and server storage.
+                </p>
+              </div>
+
+              {/* Main Visuals Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. Founder Portrait */}
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-cyan-500/30 flex flex-col justify-between space-y-4">
                   <div>
-                    <h3 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                      <Camera className="w-4 h-4 text-cyan-400" />
-                      <span>Website Portrait & Profile Photo</span>
-                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 font-mono text-[10px] font-bold uppercase">
+                      Hero & Profile Portrait
+                    </span>
+                    <h3 className="font-heading font-bold text-white text-base mt-2">Authentic Natural Photo</h3>
                     <p className="text-xs text-slate-400 font-mono mt-1">
-                      Real authentic photograph displayed on Hero, About, and WhatsApp assistant
+                      Displayed on Hero Card, About Me, WhatsApp, and Admin.
                     </p>
                   </div>
 
-                  <input
-                    type="file"
-                    ref={adminPhotoInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        adminChoosePhoto(file);
-                        setPhotoSaveSuccess(true);
-                        setTimeout(() => setPhotoSaveSuccess(false), 3500);
-                      }
-                    }}
-                  />
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => adminPhotoInputRef.current?.click()}
-                      disabled={isPhotoSaving}
-                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
-                    >
-                      {photoSaveSuccess ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Photo Updated!</span>
-                        </>
-                      ) : isPhotoSaving ? (
-                        <span>Saving...</span>
-                      ) : (
-                        <>
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Natural Photo</span>
-                        </>
-                      )}
-                    </button>
-
-                    {isCustomPhoto && (
-                      <button
-                        type="button"
-                        onClick={adminResetPhoto}
-                        className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs transition-all"
-                      >
-                        Reset Default
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-5 p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                  <div className="relative w-20 h-24 rounded-lg overflow-hidden border border-cyan-500/40 bg-slate-900 shrink-0">
+                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
                     <img
-                      src={adminPhoto}
+                      src={editableInfo.images.heroPortrait}
                       alt="Aadrash Sah"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
                   </div>
 
-                  <div className="space-y-1 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold">{PORTFOLIO_INFO.name}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30 text-[10px]">
-                        {isCustomPhoto ? 'Authentic Photo Active' : 'Default Profile Photo'}
-                      </span>
-                    </div>
-                    <p className="text-slate-400">
-                      Select your authentic photo file (e.g. WhatsApp Image) to update instantly across the entire website.
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('heroPortrait')}
+                    className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Upload New Real Photo</span>
+                  </button>
+                </div>
+
+                {/* 2. Brand Visual */}
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-blue-500/30 flex flex-col justify-between space-y-4">
+                  <div>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-950 text-blue-400 font-mono text-[10px] font-bold uppercase">
+                      Studio Branding
+                    </span>
+                    <h3 className="font-heading font-bold text-white text-base mt-2">NEW NEPAL DIGITAL Brand Visual</h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">
+                      Displayed in Brand Showcase & Brand Identity popups.
                     </p>
                   </div>
+
+                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+                    <img
+                      src={editableInfo.images.brandVisual}
+                      alt="Brand Visual"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('brandVisual')}
+                    className="w-full py-2.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold font-mono text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Brand Visual</span>
+                  </button>
+                </div>
+
+                {/* 3. Digital Mockup */}
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-purple-500/30 flex flex-col justify-between space-y-4">
+                  <div>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-400 font-mono text-[10px] font-bold uppercase">
+                      Digital Mockup
+                    </span>
+                    <h3 className="font-heading font-bold text-white text-base mt-2">Technology Mockup Visual</h3>
+                    <p className="text-xs text-slate-400 font-mono mt-1">
+                      Featured in Website Design & Digital Showcase cards.
+                    </p>
+                  </div>
+
+                  <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+                    <img
+                      src={editableInfo.images.mockupVisual}
+                      alt="Digital Mockup"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('mockupVisual')}
+                    className="w-full py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold font-mono text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-purple-500/20 active:scale-95 transition-all"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Mockup Visual</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Projects Image Gallery */}
+              <div className="pt-6 border-t border-slate-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-heading font-bold text-lg text-white">Project Showcase Images</h2>
+                    <p className="text-xs text-slate-400 font-mono">
+                      Change the image for each individual project in your portfolio.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {editableProjects.map((proj) => (
+                    <div
+                      key={proj.id}
+                      className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between space-y-3"
+                    >
+                      <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-950 border border-slate-800">
+                        <img
+                          src={proj.image}
+                          alt={proj.title}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-cyan-400 font-mono uppercase">{proj.category}</div>
+                        <h4 className="font-heading font-bold text-xs text-white truncate">{proj.title}</h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleTriggerUpload('project', proj.id)}
+                        className="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-950/80 border border-slate-700 hover:border-cyan-500/40 text-cyan-300 text-[11px] font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Change Image</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 7: SECURITY */}
+          {/* TAB 4: PROJECTS SHOWCASE */}
+          {activeTab === 'projects' && (
+            <div className="space-y-6 max-w-5xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
+                    Projects Showcase Management
+                  </h1>
+                  <p className="text-xs font-mono text-slate-400 mt-1">
+                    Manage portfolio items, titles, descriptions, and categories.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newProj: ProjectItem = {
+                        id: `proj-${Date.now().toString().slice(-4)}`,
+                        title: 'New Creative Project',
+                        category: 'Websites',
+                        description: 'Detailed project description tailored for digital growth.',
+                        image: editableInfo.images.mockupVisual,
+                        tags: ['Design', 'Creative'],
+                        deliverables: ['Custom Concept', 'Final Export']
+                      };
+                      setEditableProjects([newProj, ...editableProjects]);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs cursor-pointer shadow-md transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Project</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAllContent}
+                    disabled={isContentSaving}
+                    className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold font-mono text-xs cursor-pointer shadow-md transition-all"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Projects</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {editableProjects.map((proj, idx) => (
+                  <div
+                    key={proj.id}
+                    className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                          <img
+                            src={proj.image}
+                            alt={proj.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-cyan-400 uppercase font-bold">
+                              #{idx + 1} • {proj.category}
+                            </span>
+                          </div>
+                          <h3 className="font-heading font-bold text-white text-base">{proj.title}</h3>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleTriggerUpload('project', proj.id)}
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-mono flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>Change Photo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Delete "${proj.title}"?`)) {
+                              setEditableProjects(editableProjects.filter((p) => p.id !== proj.id));
+                            }
+                          }}
+                          className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 border border-rose-500/30 text-rose-400 text-xs cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 block mb-1">Project Title</label>
+                        <input
+                          type="text"
+                          value={proj.title}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditableProjects(
+                              editableProjects.map((p) => (p.id === proj.id ? { ...p, title: val } : p))
+                            );
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 block mb-1">Category</label>
+                        <select
+                          value={proj.category}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setEditableProjects(
+                              editableProjects.map((p) => (p.id === proj.id ? { ...p, category: val } : p))
+                            );
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+                        >
+                          <option value="Websites">Websites</option>
+                          <option value="Branding">Branding</option>
+                          <option value="Graphic Design">Graphic Design</option>
+                          <option value="Social Media">Social Media</option>
+                          <option value="Video Editing">Video Editing</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-[11px] font-mono text-slate-400 block mb-1">Description</label>
+                        <textarea
+                          rows={2}
+                          value={proj.description}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditableProjects(
+                              editableProjects.map((p) => (p.id === proj.id ? { ...p, description: val } : p))
+                            );
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SERVICES & PRICING */}
+          {activeTab === 'services' && (
+            <div className="space-y-6 max-w-5xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
+                    Services & Offerings
+                  </h1>
+                  <p className="text-xs font-mono text-slate-400 mt-1">
+                    Edit service titles, feature descriptions, tags, and pricing estimates.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveAllContent}
+                  disabled={isContentSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-bold font-mono text-xs cursor-pointer shadow-md transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Services</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {editableServices.map((srv) => (
+                  <div key={srv.id} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 text-[10px] font-mono">
+                        {srv.tag}
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-mono text-slate-400 block mb-1">Service Title</label>
+                      <input
+                        type="text"
+                        value={srv.title}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditableServices(
+                            editableServices.map((s) => (s.id === srv.id ? { ...s, title: val } : s))
+                          );
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-mono text-slate-400 block mb-1">Summary Description</label>
+                      <textarea
+                        rows={2}
+                        value={srv.description}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditableServices(
+                            editableServices.map((s) => (s.id === srv.id ? { ...s, description: val } : s))
+                          );
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: APPOINTMENTS & CLIENT LEADS */}
+          {activeTab === 'appointments' && (
+            <div className="space-y-6 max-w-6xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
+                    Client Inquiries & Appointments
+                  </h1>
+                  <p className="text-xs font-mono text-slate-400 mt-1">
+                    Manage client consultation bookings submitted through your website.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNewAppointmentModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs cursor-pointer shadow-md transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Booking</span>
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search client name, phone, or service..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <select
+                  value={selectedStatusFilter}
+                  onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono w-full sm:w-auto"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              {/* Appointment Cards */}
+              <div className="space-y-3">
+                {filteredAppointments.length === 0 ? (
+                  <div className="p-8 text-center rounded-2xl bg-slate-900/40 border border-slate-800 font-mono text-xs text-slate-400">
+                    No appointments found matching your criteria.
+                  </div>
+                ) : (
+                  filteredAppointments.map((apt) => (
+                    <div
+                      key={apt.id}
+                      onClick={() => setSelectedAppointment(apt)}
+                      className="p-4 sm:p-5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-heading font-bold text-white text-sm">{apt.name}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
+                              apt.status === 'confirmed'
+                                ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
+                                : apt.status === 'pending'
+                                ? 'bg-amber-950 text-amber-400 border border-amber-500/30'
+                                : apt.status === 'completed'
+                                ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/30'
+                                : 'bg-rose-950 text-rose-400 border border-rose-500/30'
+                            }`}
+                          >
+                            {apt.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
+                          <span>{apt.service}</span>
+                          <span>•</span>
+                          <span>{apt.date} at {apt.time}</span>
+                          <span>•</span>
+                          <span className="text-cyan-400">{apt.phone}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`https://wa.me/${apt.phone.replace(/[^0-9]/g, '')}`, '_blank');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-1.5"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: OWNER PASSWORD & SECURITY (ONLY ME NO ANY PERSON & HIDE THE) */}
           {activeTab === 'security' && (
-            <div className="space-y-6 max-w-4xl">
+            <div className="space-y-8 max-w-4xl">
               <div>
                 <h1 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
-                  Security & Access Control
+                  Owner Password & Private Vault Security
                 </h1>
                 <p className="text-xs font-mono text-slate-400 mt-1">
-                  Manage owner credentials, session authentication, and audit security logs
+                  Only you (Aadrash) have access to this dashboard. Completely hidden from public view.
                 </p>
               </div>
 
-              {/* Private Owner Password Vault - Hidden from public, only seen by owner */}
-              <div className="rounded-2xl p-6 bg-slate-900/80 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <KeyRound className="w-4 h-4 text-cyan-400" />
-                      <h3 className="text-sm font-heading font-bold text-white">
-                        Owner Private Password Vault
-                      </h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 font-mono font-bold">
-                        Only You See
-                      </span>
+              {/* Security Shield Card */}
+              <div className="rounded-2xl p-6 bg-gradient-to-br from-[#061026] to-[#040814] border border-cyan-500/40 shadow-xl space-y-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-400">
+                      <Lock className="w-6 h-6" />
                     </div>
-                    <p className="text-xs text-slate-400 font-mono mt-1">
-                      Salted cryptographic storage. Hidden by default — visible only to authenticated owner Aadrash Kumar Sah.
-                    </p>
+                    <div>
+                      <h3 className="font-heading font-bold text-white text-base">Owner Private Account</h3>
+                      <p className="text-xs font-mono text-cyan-400">
+                        {ownerVaultInfo?.email || 'videographics27@gmail.com'}
+                      </p>
+                    </div>
                   </div>
-
-                  <button
-                    onClick={() => setIsPasswordModalOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs flex items-center gap-2 cursor-pointer shadow-md shadow-cyan-500/20 active:scale-95 transition-all self-start sm:self-auto"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Change Password</span>
-                  </button>
+                  <span className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    Active & Shielded
+                  </span>
                 </div>
 
-                {/* Password Reveal Box */}
-                <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Account:</span>
-                      <span className="text-white font-medium">videographics27@gmail.com</span>
-                      <span className="text-slate-500">•</span>
-                      <span className="text-emerald-400 font-semibold">Active & Secured</span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <div className="font-mono text-sm tracking-wider font-bold text-cyan-300 bg-slate-900 px-3.5 py-1.5 rounded-lg border border-slate-800 min-w-[200px] text-center select-all">
-                        {showOwnerPassword
-                          ? (ownerVaultInfo?.currentPassword || '— Loading Vault —')
-                          : '••••••••••••••••••••'}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={toggleShowOwnerPassword}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-700"
-                        title={showOwnerPassword ? 'Hide password' : 'Show password for owner only'}
-                      >
-                        {showOwnerPassword ? (
-                          <>
-                            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Hide Password</span>
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>Show Password (Only Me)</span>
-                          </>
-                        )}
-                      </button>
-
-                      {showOwnerPassword && (
-                        <button
-                          type="button"
-                          onClick={handleCopyPassword}
-                          className="px-3 py-1.5 rounded-lg bg-cyan-950/90 hover:bg-cyan-900 border border-cyan-500/40 text-xs font-mono text-cyan-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-                        >
-                          {copiedPassword ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-300 font-bold">Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
+                {/* Current Active Password Viewer */}
+                <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-400">Current Active Password:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowOwnerPassword(!showOwnerPassword)}
+                      className="text-xs font-mono text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {showOwnerPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showOwnerPassword ? 'Hide Password' : 'Show Password'}</span>
+                    </button>
                   </div>
 
-                  {showOwnerPassword && autoHideTimer > 0 && (
-                    <div className="text-[11px] font-mono text-amber-400 bg-amber-950/40 border border-amber-500/30 px-3 py-2 rounded-lg flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-                      <span>Auto-hiding in {autoHideTimer}s (prevents shoulder surfing)</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 p-3 rounded-lg bg-slate-900 border border-slate-800 font-mono text-sm font-bold text-white tracking-wider">
+                      {showOwnerPassword
+                        ? ownerVaultInfo?.currentPassword || 'newnepaldigital9090'
+                        : '••••••••••••••••••••'}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyPassword}
+                      className="px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-mono text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                      title="Copy active password to clipboard"
+                    >
+                      {copiedPassword ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span className="text-emerald-300">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Change Password Form */}
+                <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                  <h4 className="font-heading font-bold text-sm text-white flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-cyan-400" />
+                    <span>Set New Custom Password</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Type any new password below. It will update instantly so only you can enter.
+                  </p>
+
+                  <form onSubmit={handleDirectPasswordChange} className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      placeholder="Type your new password here..."
+                      value={newDirectPassword}
+                      onChange={(e) => setNewDirectPassword(e.target.value)}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isUpdatingPassword || !newDirectPassword}
+                      className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold font-mono text-xs cursor-pointer shadow-md transition-all shrink-0"
+                    >
+                      {isUpdatingPassword ? 'Saving Password...' : 'Save New Password'}
+                    </button>
+                  </form>
+
+                  {passwordChangeStatus.success && (
+                    <div className="p-3 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
+                      {passwordChangeStatus.success}
+                    </div>
+                  )}
+
+                  {passwordChangeStatus.error && (
+                    <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-mono">
+                      {passwordChangeStatus.error}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Security Shield Status */}
-              <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-3">
-                <h3 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Active Security Shield</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-slate-300">Owner-only authorization required on all routes</span>
+              {/* How to Access the Hidden Dashboard Guide */}
+              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4" />
+                  <span>How to Access Your Hidden Dashboard</span>
+                </div>
+                <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                  To protect your website from unauthorized visitors, all admin links have been hidden from public view. Only you can open this dashboard using any of these secret triggers:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
+                    <span className="text-cyan-400 font-bold block">1. Secret Click</span>
+                    <span className="text-slate-400 text-[11px] block">
+                      Triple-click the copyright text <em>"© 2026 Aadrash Sah"</em> at the footer of the site.
+                    </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-slate-300">Zero plaintext passwords in code or frontend</span>
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
+                    <span className="text-cyan-400 font-bold block">2. Keyboard Shortcut</span>
+                    <span className="text-slate-400 text-[11px] block">
+                      Press <kbd className="px-1 bg-slate-800 rounded text-white">Ctrl</kbd> + <kbd className="px-1 bg-slate-800 rounded text-white">Shift</kbd> + <kbd className="px-1 bg-slate-800 rounded text-white">A</kbd> or simply type <strong>admin</strong> anywhere.
+                    </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-slate-300">Public visitor dashboard access permanently blocked</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-slate-300">HMAC-SHA256 bearer session verification</span>
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
+                    <span className="text-cyan-400 font-bold block">3. Secret URL</span>
+                    <span className="text-slate-400 text-[11px] block">
+                      Add <strong>#admin</strong> or <strong>/admin</strong> or <strong>?admin=1</strong> to your website URL.
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Security Audit Logs */}
-              <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-3">
-                <h3 className="text-sm font-heading font-bold text-white flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-cyan-400" />
-                  <span>Security Audit Trail</span>
-                </h3>
-
-                <div className="divide-y divide-slate-800 text-xs font-mono">
-                  {systemLogs.map((log) => (
-                    <div key={log.id} className="py-2.5 flex items-start justify-between gap-3">
-                      <div>
-                        <span className="text-cyan-400 font-bold block">{log.event}</span>
-                        <span className="text-slate-400 text-[11px]">{log.details}</span>
+              <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                <h4 className="font-heading font-bold text-sm text-white">Security & Access Logs</h4>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                  {systemLogs.slice(0, 10).map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 text-[11px] font-mono flex items-center justify-between text-slate-400"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            log.level === 'SECURITY' ? 'bg-cyan-400' : 'bg-emerald-400'
+                          }`}
+                        />
+                        <span className="text-slate-200 font-medium">{log.event}</span>
+                        <span className="text-slate-500">•</span>
+                        <span className="text-slate-400 truncate max-w-xs sm:max-w-md">{log.details}</span>
                       </div>
-                      <span className="text-[10px] text-slate-500 whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                      <span className="text-[10px] text-slate-500 shrink-0">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   ))}
